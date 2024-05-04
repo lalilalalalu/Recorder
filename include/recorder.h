@@ -43,7 +43,7 @@
  * Here, we first run the original function so we can get the ouput
  * parameters correctly.
  *
- * We also construct a [struct Record] for each function. But latter we
+ * We also construct a [struct Record] for each function. But later we
  * can change the fields, e.g., fopen will convert the FILE* to an integer res.
  *
  */
