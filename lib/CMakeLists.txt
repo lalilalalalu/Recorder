@@ -2,6 +2,7 @@
 # Include source and build directories
 #------------------------------------------------------------------------------
 include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/deps/GOTCHA/include)
 
 # set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -33,17 +34,6 @@ set(RECORDER_SRCS
 #------------------------------------------------------------------------------
 # External dependencies
 #------------------------------------------------------------------------------
-find_package(GOTCHA REQUIRED)
-if(GOTCHA_FOUND)
-    include_directories(${gotcha_INCLUDE_DIRS})
-    set(RECORDER_EXT_INCLUDE_DEPENDENCIES ${gotcha_INCLUDE_DIRS}
-            ${RECORDER_EXT_INCLUDE_DEPENDENCIES})
-    set(RECORDER_EXT_LIB_DEPENDENCIES
-	    ${gotcha_LIBRARIES} ${RECORDER_EXT_LIB_DEPENDENCIES})
-else()
-    message(STATUS, "GOTCHA not found")
-endif()
-
 find_package(HDF5 REQUIRED)
 if(HDF5_FOUND)
     include_directories(${HDF5_INCLUDE_DIRS})

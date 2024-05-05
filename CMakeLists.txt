@@ -136,7 +136,7 @@ else()
 endif()
 
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fcommon -Wno-unused-result")
 endif()
@@ -208,6 +208,7 @@ endfunction()
 #-----------------------------------------------------------------------------
 # Source
 #-----------------------------------------------------------------------------
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/deps/GOTCHA)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tools)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tools/reporter)
