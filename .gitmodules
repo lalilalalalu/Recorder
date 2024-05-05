@@ -1,0 +1,3 @@
+[submodule "deps/GOTCHA"]
+	path = deps/GOTCHA
+	url = https://github.com/LLNL/GOTCHA.git
