@@ -107,9 +107,7 @@ target_include_directories(recorder
         )
 
 target_link_libraries(recorder
-        PUBLIC ${gotcha_LIBRARIES}
-        PUBLIC ${HDF5_LIBRARIES}
-        PUBLIC ${MPI_C_LIBRARIES}
+        PUBLIC gotcha # this must match add_library(target) in GOTA project,
         PUBLIC ${RECORDER_EXT_LIB_DEPENDENCIES}
         PUBLIC pthread
         )
