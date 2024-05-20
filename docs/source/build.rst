@@ -23,6 +23,7 @@ compiled with the same version of HDF5 and MPI.*
 .. code:: bash
 
    git clone https://github.com/uiuc-hpc/Recorder.git
+   git submodule update --init --recursive
    cd Recorder
    mkdir build
    cd build
