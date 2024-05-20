@@ -107,7 +107,7 @@ target_include_directories(recorder
         )
 
 target_link_libraries(recorder
-        PUBLIC gotcha # this must match add_library(target) in GOTA project,
+        PUBLIC gotcha   # this must match add_library(target) in GOTCHA project,
         PUBLIC ${RECORDER_EXT_LIB_DEPENDENCIES}
         PUBLIC pthread
         )
