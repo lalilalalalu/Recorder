@@ -6,6 +6,79 @@ Recorder
 **A Multi-Level Library for Understanding I/O Activity in HPC
 Applications**
 
+Quickstart
+----------
+
+1. Build
+--------
+
+Recorder requires MPI and HDF5 to build. Please make sure they are installed
+before building Recorder.
+
+.. code:: bash
+
+   git clone https://github.com/uiuc-hpc/Recorder.git
+   git submodule update --init --recursive
+   cd Recorder
+   mkdir build
+   cd build
+   cmake .. -DCMAKE_INSTALL_PREFIX=[install location]
+   make
+   make install
+
+2. Run
+-------
+
+   Assume ``$RECORDER_ROOT`` is the location where you installed Recorder.
+   Do do a ``tree $RECORDER_ROOT`` should print out the following:
+
+.. code:: bash
+    ├── bin
+    │   ├── conflict-detector
+    │   ├── recorder2text
+    │   ├── recorder2timeline
+    │   └── recorder-summary
+    ├── include
+    │   ├── gotcha
+    │   │   ├── gotcha.h
+    │   │   └── gotcha_types.h
+    │   ├── recorder.h
+    │   ├── recorder-logger.h
+    │   ├── recorder-utils.h
+    │   └── uthash.h
+    ├── lib
+    │   ├── libreader.so
+    │   ├── librecorder.so -> librecorder.so.2.5.0
+    │   └── librecorder.so.2.5.0
+    ...
+
+
+Now let's run an application with Recorder to collect it traces.
+We will use a simple MPI program as our targeting application.
+Go to the Recorder's source directory and run the following.
+
+.. code:: bash
+    cd test && mpicc test_mpi.c -o test_mpi.exe
+    mpirun -np N -env LD_PRELOAD $RECORDER_ROOT/lib/librecorder.so ./test_mpi.exe
+
+After completion, you will see a folder named ``recorder-mmddyyyy``.
+Inside it, you will find the actual trace forlder of the application you just run.
+The trace folder name is ecoded using ``hostname-username-appname-pid-starttime``.
+
+3. Examine the traces
+---------------------
+
+Recorder provides a tool called *recorder2text*.
+You can use it to convert the Recorder-format traces to plain text format.
+
+.. code:: bash
+
+   $RECORDER_ROOT/bin/recorder2text /path/to/your_trace_folder/
+
+This will generate text fomart traces under ``/path/to/your_trace_folder/_text``.
+You will see multiple [pid].txt files, each containing the traces of the processor [pid].
+
+
 .. toctree::
    overview
    build
