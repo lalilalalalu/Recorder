@@ -25,6 +25,26 @@ system-widely. Recorder does not work with Darshan. Please make sure
 darhsn is disabled and your application is not linked with the darshan
 library (use ldd to check).*
 
+Configure tracing layers
+------------------------
+
+Recorder is capable of tracing POSIX, MPI, MPI-IO, and HDF5 calls.
+By default, POSIX, MPI-IO, and HDF5 tracing are enabled.
+At runtime (generally before running your application), you can set
+the following environment variables to dynamically enable/disable
+the tracing of certain layers.
+
+1 = enable; 0 = disable.
+
+* export RECORDER_POSIX_TRACING=[1|0]
+
+* export RECORDER_MPIIO_TRACING=[1|0]
+
+* export RECORDER_MPI_TRACING=[1|0]
+
+* export RECORDER_HDF5_TRACING=[1|0]
+
+
 Human-readable traces
 ------------------------
 

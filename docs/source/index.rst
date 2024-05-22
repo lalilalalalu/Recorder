@@ -60,17 +60,21 @@ Go to the Recorder's source directory and run the following.
 
 .. code:: bash
 
-    cd test && mpicc test_mpi.c -o test_mpi.exe
-    mpirun -np N -env LD_PRELOAD $RECORDER_ROOT/lib/librecorder.so ./test_mpi.exe
+    cd test && mpicc test_mpi.c -o test_mpi
+    mpirun -np N -env LD_PRELOAD $RECORDER_ROOT/lib/librecorder.so ./test_mpi
+
+    # On HPC systems, you may need to use srun or 
+    # some other job schedulers to replace mpirun, e.g.,
+    srun -n4 -N1 --overlap --export=ALL,LD_PRELOAD=$RECORDER_ROOT/lib/librecorder.so ./test_mpi
 
 After completion, you will see a folder named ``recorder-yyyymmdd``. This is a parent folder
 that contains all traces folders generated on *yyyymmdd*.
 Inside it, you will find the actual trace forlder of the application you just run.
-It's folder name is ecoded as ``hostname-username-appname-pid-starttime``.
+It's folder name follows the format of ``HHmmSS.ff-hostname-username-appname-pid``.
 
 **3. Examine the traces**
 
-Recorder provides several useful tools under ``l$RECORDER_ROOT/bin$`` for analysis.
+Recorder provides several useful tools under ``$RECORDER_ROOT/bin$`` for analysis.
 Among them, *recorder2text* is used to convert the Recorder-format traces to plain text files.
 
 .. code:: bash

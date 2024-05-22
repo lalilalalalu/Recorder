@@ -44,33 +44,19 @@ need to use ``-DCMAKE_PREFIX_PATH`` to indicate their locations:
          -DCMAKE_INSTALL_PREFIX=[install location]                   \
          -DCMAKE_PREFIX_PATH=[semicolon separated depedencies dir]
 
-(2) Enable/disable tracing levels
-
-By default, Recorde traces function calls from all levels: HDF5, MPI,
-MPI-IO and POSIX. The following options can be used to enable/disable
-specific levels.
-
-* -DRECORDER_ENABLE_POSIX_TRACE=[ON|FF]
-
-* -DRECORDER_ENABLE_MPI_TRACE=[ON|FF]
-
-* -DRECORDER_ENABLE_MPIIO_TRACE=[ON|FF]
-
-* -DRECORDER_ENABLE_HDF5_TRACE=[ON|FF]
-
-(3) Intercepting ``fcntl()`` call:
+(2) Intercepting ``fcntl()`` call:
 
 Since v2.1.7, ``fcntl(int fd, int cmd, ...)`` is intercepted. The
 commands (2nd argument) defined in POSIX standard are supported. If
 non-POSIX commands were used, please disable fcntl tracing at configure
 time with ``-DRECORDER_ENABLE_FCNTL_TRACE=OFF``.
 
-(4) Intercepting CUDA kernels:
+(3) Intercepting CUDA kernels:
 
 add ``-DRECORDER_ENABLE_CUDA_TRACE=ON`` to cmake to allow tracing CUDA
 kernels.
 
-(5) Parquet Converter
+(4) Parquet Converter
 
 add ``-DRECORDER_ENABLE_PARQUET=ON`` to cmake to build the Parquet
 format converter
