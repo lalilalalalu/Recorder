@@ -74,7 +74,7 @@ It's folder name follows the format of ``HHmmSS.ff-hostname-username-appname-pid
 
 **3. Examine the traces**
 
-Recorder provides several useful tools under ``$RECORDER_ROOT/bin$`` for analysis.
+Recorder provides several useful tools under ``$RECORDER_ROOT$/bin`` for analysis purposes.
 Among them, *recorder2text* is used to convert the Recorder-format traces to plain text files.
 
 .. code:: bash
