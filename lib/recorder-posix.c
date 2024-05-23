@@ -257,53 +257,85 @@ FILE* WRAPPER_NAME(fopen)(const char *path, const char *mode) {
 }
 
 
-/**
+/*
  * From http://refspecs.linuxbase.org/LSB_3.0.0/LSB-PDA/LSB-PDA/baselib-xstat-1.html:
  * The functions __xstat(), __lxstat(), and __fxstat() shall implement the ISO POSIX (2003) functions stat(), lstat(), and fstat() respectively
  *
  * This means stat(), lstat(), fstat() are just wrappers in GLIC and dlsym() is not able to hook them.
  * So wee need to hook __xstat(), __lxstat(), and __fxstat()
  */
+/*
+ * NOTE on __xstat(2), __lxstat(2), and __fxstat(2)
+ * The additional parameter vers shall be 3 or the behavior of these functions
+ * is undefined. (ISO POSIX(2003))
+ *
+ * from /sys/stat.h, it seems that we need to test if vers being _STAT_VER,
+ * instead of using the absolute value 3.
+ */
+
+/*
+ * NOTE 2: As of glibc-2.33, _STAT_VER is no longer defined in bits/stat.h.
+ * __xstat is also no longer declared in stat.h, but it still exists in the
+ * library, so HAVE___XSTAT will be true.  (The same goes for __lxstat &
+ * __fxstat.)  In such a case, we have to define _STAT_VER ourselves.
+ */
+#ifndef _STAT_VER
+  #define _STAT_VER 3
+#endif
+
+#ifdef HAVE___XSTAT
 int WRAPPER_NAME(__xstat)(int vers, const char *path, struct stat *buf) {
     GET_CHECK_FILENAME(__xstat, (vers, path, buf), path, ARG_TYPE_PATH);
     RECORDER_INTERCEPTOR_PROLOGUE(int, __xstat, (vers, path, buf));
     char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
     RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
+#endif
 
+#ifdef HAVE___XSTAT64
 int WRAPPER_NAME(__xstat64)(int vers, const char *path, struct stat64 *buf) {
     GET_CHECK_FILENAME(__xstat64, (vers, path, buf), path, ARG_TYPE_PATH);
     RECORDER_INTERCEPTOR_PROLOGUE(int, __xstat64, (vers, path, buf));
     char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
     RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
+#endif
 
+#ifdef HAVE___LXSTAT
 int WRAPPER_NAME(__lxstat)(int vers, const char *path, struct stat *buf) {
     GET_CHECK_FILENAME(__lxstat, (vers, path, buf), path, ARG_TYPE_PATH);
     RECORDER_INTERCEPTOR_PROLOGUE(int, __lxstat, (vers, path, buf));
     char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
     RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
+#endif
+
+#ifdef HAVE___LXSTAT64
 int WRAPPER_NAME(__lxstat64)(int vers, const char *path, struct stat64 *buf) {
     GET_CHECK_FILENAME(__lxstat64, (vers, path, buf), path, ARG_TYPE_PATH);
     RECORDER_INTERCEPTOR_PROLOGUE(int, __lxstat64, (vers, path, buf));
     char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
     RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
+#endif
 
+#ifdef HAVE___FXSTAT
 int WRAPPER_NAME(__fxstat)(int vers, int fd, struct stat *buf) {
     GET_CHECK_FILENAME(__fxstat, (vers, fd, buf), &fd, ARG_TYPE_FD);
     RECORDER_INTERCEPTOR_PROLOGUE(int, __fxstat, (vers, fd, buf));
     char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
     RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
+#endif
 
+#ifdef HAVE___FXSTAT64
 int WRAPPER_NAME(__fxstat64)(int vers, int fd, struct stat64 *buf) {
     GET_CHECK_FILENAME(__fxstat64, (vers, fd, buf), &fd, ARG_TYPE_FD);
     RECORDER_INTERCEPTOR_PROLOGUE(int, __fxstat64, (vers, fd, buf));
     char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
     RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
+#endif
 
 ssize_t WRAPPER_NAME(pread64)(int fd, void *buf, size_t count, off64_t offset) {
     GET_CHECK_FILENAME(pread64, (fd, buf, count, offset), &fd, ARG_TYPE_FD);
