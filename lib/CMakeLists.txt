@@ -91,6 +91,14 @@ if(RECORDER_ENABLE_CUDA_TRACE)
 endif()
 
 
+INCLUDE(CheckFunctionExists)
+CHECK_FUNCTION_EXISTS(__xstat    HAVE___XSTAT)
+CHECK_FUNCTION_EXISTS(__xstat64  HAVE___XSTAT64)
+CHECK_FUNCTION_EXISTS(__lxstat   HAVE___LXSTAT)
+CHECK_FUNCTION_EXISTS(__lxstat64 HAVE___LXSTAT64)
+CHECK_FUNCTION_EXISTS(__fxstat   HAVE___FXSTAT)
+CHECK_FUNCTION_EXISTS(__fxstat64 HAVE___FXSTAT64)
+
 
 #------------------------------------------------------------------------------
 # Libraries
@@ -115,6 +123,12 @@ target_link_libraries(recorder
 target_compile_definitions(recorder
         PUBLIC _LARGEFILE64_SOURCE
         PUBLIC RECORDER_PRELOAD
+        PRIVATE $<$<BOOL:${HAVE___XSTAT}>:HAVE___XSTAT>
+        PRIVATE $<$<BOOL:${HAVE___XSTAT64}>:HAVE___XSTAT64>
+        PRIVATE $<$<BOOL:${HAVE___LXSTAT}>:HAVE___LXSTAT>
+        PRIVATE $<$<BOOL:${HAVE___LXSTAT64}>:HAVE___LXSTAT64>
+        PRIVATE $<$<BOOL:${HAVE___FXSTAT}>:HAVE___FXSTAT>
+        PRIVATE $<$<BOOL:${HAVE___FXSTAT64}>:HAVE___FXSTAT64>
         PRIVATE $<$<BOOL:${RECORDER_ENABLE_FCNTL_TRACE}>:RECORDER_ENABLE_FCNTL_TRACE>
         PRIVATE $<$<BOOL:${RECORDER_ENABLE_CUDA_TRACE}>:RECORDER_ENABLE_CUDA_TRACE>
         )

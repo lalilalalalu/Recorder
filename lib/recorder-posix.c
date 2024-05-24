@@ -283,59 +283,47 @@ FILE* WRAPPER_NAME(fopen)(const char *path, const char *mode) {
   #define _STAT_VER 3
 #endif
 
-#ifdef HAVE___XSTAT
 int WRAPPER_NAME(__xstat)(int vers, const char *path, struct stat *buf) {
     GET_CHECK_FILENAME(__xstat, (vers, path, buf), path, ARG_TYPE_PATH);
     RECORDER_INTERCEPTOR_PROLOGUE(int, __xstat, (vers, path, buf));
     char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
     RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
-#endif
 
-#ifdef HAVE___XSTAT64
 int WRAPPER_NAME(__xstat64)(int vers, const char *path, struct stat64 *buf) {
     GET_CHECK_FILENAME(__xstat64, (vers, path, buf), path, ARG_TYPE_PATH);
     RECORDER_INTERCEPTOR_PROLOGUE(int, __xstat64, (vers, path, buf));
     char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
     RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
-#endif
 
-#ifdef HAVE___LXSTAT
 int WRAPPER_NAME(__lxstat)(int vers, const char *path, struct stat *buf) {
     GET_CHECK_FILENAME(__lxstat, (vers, path, buf), path, ARG_TYPE_PATH);
     RECORDER_INTERCEPTOR_PROLOGUE(int, __lxstat, (vers, path, buf));
     char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
     RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
-#endif
 
-#ifdef HAVE___LXSTAT64
 int WRAPPER_NAME(__lxstat64)(int vers, const char *path, struct stat64 *buf) {
     GET_CHECK_FILENAME(__lxstat64, (vers, path, buf), path, ARG_TYPE_PATH);
     RECORDER_INTERCEPTOR_PROLOGUE(int, __lxstat64, (vers, path, buf));
     char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
     RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
-#endif
 
-#ifdef HAVE___FXSTAT
 int WRAPPER_NAME(__fxstat)(int vers, int fd, struct stat *buf) {
     GET_CHECK_FILENAME(__fxstat, (vers, fd, buf), &fd, ARG_TYPE_FD);
     RECORDER_INTERCEPTOR_PROLOGUE(int, __fxstat, (vers, fd, buf));
     char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
     RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
-#endif
 
-#ifdef HAVE___FXSTAT64
 int WRAPPER_NAME(__fxstat64)(int vers, int fd, struct stat64 *buf) {
     GET_CHECK_FILENAME(__fxstat64, (vers, fd, buf), &fd, ARG_TYPE_FD);
     RECORDER_INTERCEPTOR_PROLOGUE(int, __fxstat64, (vers, fd, buf));
     char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
     RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
-#endif
 
 ssize_t WRAPPER_NAME(pread64)(int fd, void *buf, size_t count, off64_t offset) {
     GET_CHECK_FILENAME(pread64, (fd, buf, count, offset), &fd, ARG_TYPE_FD);

@@ -36,12 +36,24 @@ void gotcha_register_functions() {
         GOTCHA_WRAP_ACTION(fseek),
         GOTCHA_WRAP_ACTION(fsync),
         GOTCHA_WRAP_ACTION(fdatasync),
+#ifdef HAVE___XSTAT
         GOTCHA_WRAP_ACTION(__xstat),
+#endif
+#ifdef HAVE___XSTAT64
         GOTCHA_WRAP_ACTION(__xstat64),
+#endif
+#ifdef HAVE___LXSTAT
         GOTCHA_WRAP_ACTION(__lxstat),
+#endif
+#ifdef HAVE___LXSTAT64
         GOTCHA_WRAP_ACTION(__lxstat64),
+#endif
+#ifdef HAVE___FXSTAT
         GOTCHA_WRAP_ACTION(__fxstat),
+#endif
+#ifdef HAVE___FXSTAT64
         GOTCHA_WRAP_ACTION(__fxstat64),
+#endif
         GOTCHA_WRAP_ACTION(getcwd),
         GOTCHA_WRAP_ACTION(mkdir),
         GOTCHA_WRAP_ACTION(rmdir),
