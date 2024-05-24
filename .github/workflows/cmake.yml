@@ -2,9 +2,9 @@ name: build
 
 on:
   push:
-    branches: [ pilgrim ]
+    branches: [ dev ]
   pull_request:
-    branches: [ pilgrim ]
+    branches: [ dev ]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -20,6 +20,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
     
     - name: Install HDF5 and MPI
       run: |
