@@ -36,6 +36,7 @@ void gotcha_register_functions() {
         GOTCHA_WRAP_ACTION(fseek),
         GOTCHA_WRAP_ACTION(fsync),
         GOTCHA_WRAP_ACTION(fdatasync),
+#if __GLIBC__ == 2 && __GLIBC_MINOR__ < 33
 #ifdef HAVE___XSTAT
         GOTCHA_WRAP_ACTION(__xstat),
 #endif
@@ -53,6 +54,7 @@ void gotcha_register_functions() {
 #endif
 #ifdef HAVE___FXSTAT64
         GOTCHA_WRAP_ACTION(__fxstat64),
+#endif
 #endif
         GOTCHA_WRAP_ACTION(getcwd),
         GOTCHA_WRAP_ACTION(mkdir),

@@ -283,6 +283,7 @@ FILE* WRAPPER_NAME(fopen)(const char *path, const char *mode) {
   #define _STAT_VER 3
 #endif
 
+#if __GLIBC__ == 2 && __GLIBC_MINOR__ < 33
 int WRAPPER_NAME(__xstat)(int vers, const char *path, struct stat *buf) {
     GET_CHECK_FILENAME(__xstat, (vers, path, buf), path, ARG_TYPE_PATH);
     RECORDER_INTERCEPTOR_PROLOGUE(int, __xstat, (vers, path, buf));
@@ -324,6 +325,7 @@ int WRAPPER_NAME(__fxstat64)(int vers, int fd, struct stat64 *buf) {
     char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
     RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
+#endif
 
 ssize_t WRAPPER_NAME(pread64)(int fd, void *buf, size_t count, off64_t offset) {
     GET_CHECK_FILENAME(pread64, (fd, buf, count, offset), &fd, ARG_TYPE_FD);

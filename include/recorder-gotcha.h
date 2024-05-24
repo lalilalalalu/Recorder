@@ -111,12 +111,14 @@ GOTCHA_WRAP(fdatasync, int, (int fd));
 //GOTCHA_WRAP(vfprintf, int, (FILE *stream, const char *format, va_list ap));
 // stat/fstat/lstat are wrappers in GLIBC and dlsym can not hook them.
 // Instead, xstat/lxstat/fxstat are their GLIBC implementations so we can hook them.
+#if __GLIBC__ == 2 && __GLIBC_MINOR__ < 33
 GOTCHA_WRAP(__xstat, int, (int vers, const char *path, struct stat *buf));
 GOTCHA_WRAP(__xstat64, int, (int vers, const char *path, struct stat64 *buf));
 GOTCHA_WRAP(__lxstat, int, (int vers, const char *path, struct stat *buf));
 GOTCHA_WRAP(__lxstat64, int, (int vers, const char *path, struct stat64 *buf));
 GOTCHA_WRAP(__fxstat, int, (int vers, int fd, struct stat *buf));
 GOTCHA_WRAP(__fxstat64, int, (int vers, int fd, struct stat64 *buf));
+#endif
 /* Other POSIX Function Calls, not directly related to I/O */
 // Files and Directories
 GOTCHA_WRAP(getcwd, char*, (char *buf, size_t size));
