@@ -19,8 +19,8 @@ Run the following to fetch, build, and install Recorder.
 .. code:: bash
 
    git clone https://github.com/uiuc-hpc/Recorder.git
-   git submodule update --init --recursive
    cd Recorder
+   git submodule update --init --recursive
    mkdir build
    cd build
    cmake .. -DCMAKE_INSTALL_PREFIX=[install location]
