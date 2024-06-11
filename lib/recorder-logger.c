@@ -159,7 +159,10 @@ void create_traces_dir() {
     char* traces_dir = alloca(800);
     char* tmp = realrealpath("/proc/self/exe");
     char* exec_name = basename(tmp);
-    char* user_name = getlogin();
+    char user_name_unknown[13] = "user-unknown";
+    char* user_name = user_name_unknown;
+    if (getlogin() != NULL)
+        user_name = getlogin();
 
     long unsigned int pid = (long unsigned int)getpid();
     char hostname[64] = {0};
@@ -169,7 +172,7 @@ void create_traces_dir() {
     gettimeofday(&tv, NULL);
 
     sprintf(traces_dir, "recorder-%d%02d%02d/%02d%02d%02d.%02d-%s-%s-%s-%lu/",
-            tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, 
+            tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
             tm.tm_hour, tm.tm_min, tm.tm_sec, (int)(tv.tv_usec/1000),
             hostname, user_name, exec_name, pid);
     free(tmp);
@@ -265,7 +268,7 @@ void logger_init() {
 
     size_t ts_buf_size = logger.ts_max_elements*sizeof(uint32_t);
     logger.ts = recorder_malloc(ts_buf_size);
-    
+
     const char* ts_compression_str = getenv(RECORDER_TIME_COMPRESSION);
     if(ts_compression_str)
         logger.ts_compression = atoi(ts_compression_str);
@@ -273,7 +276,6 @@ void logger_init() {
     const char* time_resolution_str = getenv(RECORDER_TIME_RESOLUTION);
     if(time_resolution_str)
         logger.ts_resolution = atof(time_resolution_str);
-
 
     const char* store_tid_str = getenv(RECORDER_STORE_TID);
     if(store_tid_str)
@@ -354,7 +356,6 @@ void save_global_metadata() {
 }
 
 void logger_finalize() {
-
     if(!logger.directory_created)
         logger_set_mpi_info(0, 1);
 
