@@ -95,7 +95,7 @@ int MPI_Init(int *argc, char ***argv) {
 }
 
 void mpi_init_(MPI_Fint* ierr) {
-    RECORDER_LOGDBG("[Recorder] MPI_Init_\n");
+    RECORDER_LOGDBG("[Recorder] mpi_init_\n");
     int argc = 0;
     char** argv = NULL;
     int ret = PMPI_Init(&argc, &argv);
@@ -113,7 +113,7 @@ int MPI_Init_thread(int *argc, char ***argv, int required, int *provided) {
 }
 
 void mpi_init_thread_(MPI_Fint* required, MPI_Fint* provided, MPI_Fint* ierr) {
-    RECORDER_LOGDBG("[Recorder] MPI_Init_thread_\n");
+    RECORDER_LOGDBG("[Recorder] mpi_init_thread_\n");
     int argc = 0;
     char** argv = NULL;
     int ret = PMPI_Init_thread(&argc, &argv, *((int*)required), provided);
@@ -123,11 +123,13 @@ void mpi_init_thread_(MPI_Fint* required, MPI_Fint* provided, MPI_Fint* ierr) {
 }
 
 int MPI_Finalize(void) {
+    RECORDER_LOGDBG("[Recorder] MPI_Finalize\n");
     recorder_finalize();
     return PMPI_Finalize();
 }
 
-void MPI_Finalize_(MPI_Fint* ierr) {
+void mpi_finalize_(MPI_Fint* ierr) {
+    RECORDER_LOGDBG("[Recorder] mpi_finalize_\n");
     recorder_finalize();
     *ierr = 0;
 }

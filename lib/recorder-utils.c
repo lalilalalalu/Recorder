@@ -13,6 +13,7 @@
 // Log pointer addresses in the trace file?
 static bool   log_pointer = false;
 static size_t memory_usage = 0;
+static int    debug_level = 2;  // 1:ERR, 2:INFO, 3:DBG
 
 
 char** inclusion_prefix;
@@ -110,6 +111,10 @@ void utils_init() {
     const char *inclusion_fname = getenv(RECORDER_INCLUSION_FILE);
     if(inclusion_fname)
         inclusion_prefix = read_prefix_list(inclusion_fname);
+
+    const char *debug_level_str = getenv(RECORDER_DEBUG_LEVEL);
+    if(debug_level_str)
+        debug_level = atoi(debug_level_str);
 }
 
 
@@ -294,7 +299,7 @@ unsigned char get_function_id_by_name(const char* name) {
 inline char* realrealpath(const char *path) {
     char* res = realpath(path, NULL);   // we do not intercept realpath()
 
-    // realpath() could return NULL on error 
+    // realpath() could return NULL on error
 	// e.g., when the file not exists
     if (res == NULL) {
 		if(path[0] == '/') return strdup(path);
@@ -335,7 +340,7 @@ int mkpath(char* file_path, mode_t mode) {
     return 0;
 }
 
-int min_in_array(int* arr, size_t len) {
+inline int min_in_array(int* arr, size_t len) {
     int min_val = arr[0];
     for(int i = 1; i < len; i++) {
         if(arr[i] < min_val)
@@ -345,12 +350,12 @@ int min_in_array(int* arr, size_t len) {
 }
 
 
-double recorder_log2(int val) {
+inline double recorder_log2(int val) {
     return log(val)/log(2);
 }
 
 
-int recorder_ceil(double val) {
+inline int recorder_ceil(double val) {
     int tmp = (int) val;
     if(val > tmp)
         return tmp + 1;
@@ -358,6 +363,9 @@ int recorder_ceil(double val) {
         return tmp;
 }
 
+inline int recorder_debug_level() {
+    return debug_level;
+}
 
 void recorder_write_zlib(unsigned char* buf, size_t buf_size, FILE* out_file) {
     GOTCHA_SET_REAL_CALL(fwrite, RECORDER_POSIX);
