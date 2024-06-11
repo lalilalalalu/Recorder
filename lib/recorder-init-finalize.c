@@ -50,6 +50,7 @@ void recorder_init() {
     utils_init();
 
     local_tstart = recorder_wtime();
+    RECORDER_LOGDBG("[Recorder] recorder initialized.\n");
 }
 
 void update_mpi_info() {
@@ -86,22 +87,49 @@ void recorder_finalize() {
 }
 
 int MPI_Init(int *argc, char ***argv) {
+    RECORDER_LOGDBG("[Recorder] MPI_Init\n");
     int ret = PMPI_Init(argc, argv);
     recorder_init();
     update_mpi_info();
     return ret;
 }
 
+void mpi_init_(MPI_Fint* ierr) {
+    RECORDER_LOGDBG("[Recorder] MPI_Init_\n");
+    int argc = 0;
+    char** argv = NULL;
+    int ret = PMPI_Init(&argc, &argv);
+    recorder_init();
+    update_mpi_info();
+    *ierr = (MPI_Fint)ret;
+}
+
 int MPI_Init_thread(int *argc, char ***argv, int required, int *provided) {
+    RECORDER_LOGDBG("[Recorder] MPI_Init_thread\n");
     int ret = PMPI_Init_thread(argc, argv, required, provided);
     recorder_init();
     update_mpi_info();
     return ret;
 }
 
+void mpi_init_thread_(MPI_Fint* required, MPI_Fint* provided, MPI_Fint* ierr) {
+    RECORDER_LOGDBG("[Recorder] MPI_Init_thread_\n");
+    int argc = 0;
+    char** argv = NULL;
+    int ret = PMPI_Init_thread(&argc, &argv, *((int*)required), provided);
+    recorder_init();
+    update_mpi_info();
+    *ierr = (MPI_Fint)ret;
+}
+
 int MPI_Finalize(void) {
     recorder_finalize();
     return PMPI_Finalize();
+}
+
+void MPI_Finalize_(MPI_Fint* ierr) {
+    recorder_finalize();
+    *ierr = 0;
 }
 
 
