@@ -20,8 +20,9 @@
 #define RECORDER_INTRAPROCESS_PATTERN_RECOGNITION   "RECORDER_INTRAPROCESS_PATTERN_RECOGNITION"
 #define RECORDER_EXCLUSION_FILE     		        "RECORDER_EXCLUSION_FILE"
 #define RECORDER_INCLUSION_FILE     		        "RECORDER_INCLUSION_FILE"
+#define RECORDER_DEBUG_LEVEL                        "RECORDER_DEBUG_LEVEL"
 
-/* 
+/*
  * Allowing users to exclude the interception
  * of certain layers at runtime.
  *
@@ -71,6 +72,7 @@
 
 // C wrappers call this
 #define RECORDER_INTERCEPTOR_PROLOGUE(ret, func, real_args)                         \
+    /*RECORDER_LOGINFO("[Recorder] intercept %s\n", #func);*/                       \
     if(!logger_initialized()) {                                                     \
         GOTCHA_SET_REAL_CALL_NOCHECK(func);                                         \
         ret res = GOTCHA_REAL_CALL(func) real_args ;                                \
