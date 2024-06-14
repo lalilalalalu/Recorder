@@ -14,7 +14,7 @@ It relies on a few python libraries for visualization. Please install them first
 
 .. code:: bash
 
-   pip install pandas prettytable bokeh
+   pip install pandas prettytable bokeh --user
    pip install recorder-viz --user
 
 This will install recorder-viz locally. You may need to include
