@@ -7,10 +7,15 @@ Post-processing and Visualization
 We developed a Python library,
 `recorder-viz <https://github.com/wangvsa/recorder-viz>`__, for
 post-processing and visualizations. 
-Simply install it using `pip`:
+
+
+recorder-viz can be installed by using `pip`.
+It relies on a few python libraries for visualization. Please install them first.
+Dependencies: pandas, bokeh and prettytable.
 
 .. code:: bash
 
+   pip install numpy pandas prettytable
    pip install recorder-viz --user
 
 This will install recorder-viz locally. You may need to include
