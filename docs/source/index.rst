@@ -15,78 +15,58 @@ Recorder requires MPI and HDF5 to build. Please make sure they are installed
 before building Recorder.
 
 Run the following to fetch, build, and install Recorder.
+In this example, we will install Recorder under its srouce directory.
+You can change the install localtion by modifying ``$RECORDER_INSTALL_PATH`` below. 
 
 .. code:: bash
 
    git clone https://github.com/uiuc-hpc/Recorder.git
    cd Recorder
+   export RECORDER_INSTALL_PATH=`pwd`/install
    git submodule update --init --recursive
    mkdir build
    cd build
-   cmake .. -DCMAKE_INSTALL_PREFIX=[install location]
+   cmake .. -DCMAKE_INSTALL_PREFIX=$RECORDER_INSTALL_PATH
    make
    make install
 
-**2. Run**
 
-Assume ``$RECORDER_ROOT`` is the location where you installed Recorder.
-Do do a ``tree $RECORDER_ROOT`` should print out the following:
+**2. Trace an application**
 
-.. code:: bash
-
-    ├── bin
-    │   ├── conflict-detector
-    │   ├── recorder2text
-    │   ├── recorder2timeline
-    │   └── recorder-summary
-    ├── include
-    │   ├── gotcha
-    │   │   ├── gotcha.h
-    │   │   └── gotcha_types.h
-    │   ├── recorder.h
-    │   ├── recorder-logger.h
-    │   ├── recorder-utils.h
-    │   └── uthash.h
-    ├── lib
-    │   ├── libreader.so
-    │   ├── librecorder.so -> librecorder.so.2.5.0
-    │   └── librecorder.so.2.5.0
-    ...
-
-
+Make sure ``$RECORDER_INSTALL_PATH`` points to the location where you installed Recorder.
 Now let's run an application with Recorder to collect it traces.
-We will use a simple MPI program as our targeting application.
+We will use an example MPI program as our targeting application.
 Go to the Recorder's source directory and run the following.
 
 .. code:: bash
 
     cd test && mpicc test_mpi.c -o test_mpi
-    mpirun -np N -env LD_PRELOAD $RECORDER_ROOT/lib/librecorder.so ./test_mpi
+    mpirun -np N -env LD_PRELOAD $RECORDER_INSTALL_PATH/lib/librecorder.so ./test_mpi
 
     # On HPC systems, you may need to use srun or 
-    # some other job schedulers to replace mpirun, e.g.,
-    srun -n4 -N1 --overlap --export=ALL,LD_PRELOAD=$RECORDER_ROOT/lib/librecorder.so ./test_mpi
+    # other job schedulers to replace mpirun, e.g.,
+    srun -n4 -N1 --overlap --export=ALL,LD_PRELOAD=$RECORDER_INSTALL_PATH/lib/librecorder.so ./test_mpi
 
-After completion, you will see a folder named ``recorder-yyyymmdd``. This is a parent folder
+Once completed, you will see a folder named ``recorder-yyyymmdd``. This is a parent folder
 that contains all traces folders generated on *yyyymmdd*.
 Inside it, you will find the actual trace forlder of the application you just run.
-It's folder name follows the format of ``HHmmSS.ff-hostname-username-appname-pid``.
+The folder name follows the format of ``HHmmSS.ff-hostname-username-appname-pid``.
 
 **3. Examine the traces**
 
-Recorder provides several useful tools under ``$RECORDER_ROOT$/bin`` for analysis purposes.
+Recorder provides several useful tools under ``$RECORDER_INSTALL_PATH$/bin`` for analysis purposes.
 
 *recorder-summary* can be used to reports high-level statistics:
 
 .. code:: bash
 
-   $RECORDER_ROOT/bin/recorder-summary /path/to/your_trace_folder/
+   $RECORDER_INSTALL_PATH/bin/recorder-summary /path/to/your_trace_folder/
 
 *recorder2text* is used to convert the Recorder-format traces to plain text files.
 
 .. code:: bash
 
-   $RECORDER_ROOT/bin/recorder2text /path/to/your_trace_folder/
+   $RECORDER_INSTALL_PATH/bin/recorder2text /path/to/your_trace_folder/
 
 This will generate text fomart traces under ``/path/to/your_trace_folder/_text``.
 You will see *N* [pid].txt files, where *N* is the number processors you run your application.

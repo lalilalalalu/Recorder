@@ -6,12 +6,32 @@ Post-processing and Visualization
 
 We developed a Python library,
 `recorder-viz <https://github.com/wangvsa/recorder-viz>`__, for
-post-processing and visualizations. Once installed, run the following
-command to generate the visualization report.
+post-processing and visualizations. 
+Simply install it using `pip`:
 
 .. code:: bash
 
-   python $RECORDER_DIR/tools/reporter/reporter.py /path/to/your_trace_folder/
+   pip install recorder-viz --user
+
+This will install recorder-viz locally. You may need to include
+``~/.local/bin`` in your ``$PATH`` enviroment.
+
+.. code:: bash
+
+   export PATH=$HOME/.local/bin:$PATH
+
+recorder-viz relies on Recorder to run. Make sure ``$RECORDER_INSTALL_PATH``
+points to the location where you installed Recorder.
+
+To generate a visualization report. Run:
+
+.. code:: bash
+
+   recorder-report /path/to/your_trace_folder/
+
+This will generate an html file under the current directory. Simply open
+it with your web broswer. Cheers!
+
 
 2. Format Converters
 --------------------
