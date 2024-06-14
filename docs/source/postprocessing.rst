@@ -11,11 +11,10 @@ post-processing and visualizations.
 
 recorder-viz can be installed by using `pip`.
 It relies on a few python libraries for visualization. Please install them first.
-Dependencies: pandas, bokeh and prettytable.
 
 .. code:: bash
 
-   pip install numpy pandas prettytable
+   pip install pandas prettytable bokeh
    pip install recorder-viz --user
 
 This will install recorder-viz locally. You may need to include
