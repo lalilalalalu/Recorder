@@ -4,7 +4,7 @@
 
 
 
-Suppose `$RECORDER_DIR` is the install location of Recorder.
+Make sure `$RECORDER_INSTALL_PATH` is the install location of Recorder.
 
 Dependencies: `recorder-viz` and `networkx`. Both can be installed using pip.
 
@@ -13,7 +13,7 @@ Steps:
 2. Run the conflict detector to report **potential** conflicting I/O accesses.
    Those acesses are only potentially conflicting as here we do not take happens-before order into consideration yet.
 
-   `$RECORDER_DIR/bin/conflict_detector /path/to/traces --semantics=posix`
+   `$RECORDER_INSTALL_PATH/bin/conflict_detector /path/to/traces --semantics=posix`
    
    The `semantics` option needs to match the one provided by the underlying file system. For example, if the traces were collected on UnifyFS, set it to "commit".
    
@@ -25,7 +25,7 @@ Steps:
    python ./verifyio.py -h  # print out usage
    
    #Example:
-   python ./verifyio.py /path/to/traces /path/to/traces/conflicts.txt --semantics=mpi
+   python ./verifyio.py /path/to/traces --semantics=mpi
    ```
    
    
