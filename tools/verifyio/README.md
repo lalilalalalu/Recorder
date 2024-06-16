@@ -13,7 +13,7 @@ Steps:
 2. Run the conflict detector to report **potential** conflicting I/O accesses.
    Those acesses are only potentially conflicting as here we do not take happens-before order into consideration yet.
 
-   `$RECORDER_INSTALL_PATH/bin/conflict_detector /path/to/traces --semantics=posix`
+   `$RECORDER_INSTALL_PATH/bin/conflict_detector /path/to/traces`
    
    The `semantics` option needs to match the one provided by the underlying file system. For example, if the traces were collected on UnifyFS, set it to "commit".
    
