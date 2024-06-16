@@ -15,11 +15,11 @@ Steps:
 
    `$RECORDER_INSTALL_PATH/bin/conflict_detector /path/to/traces`
    
-   The `semantics` option needs to match the one provided by the underlying file system. For example, if the traces were collected on UnifyFS, set it to "commit".
-   
    This command will write all potential conflicts found to the file `/path/to/traces/conflicts.txt`
    
 3. Finally run the verification code, which checks if those potential conflicting operations are properly synchronzied.
+
+   The `semantics` option needs to match the one provided by the underlying file system. For example, if the traces were collected on UnifyFS, set it to "commit".
    
    ```python
    python ./verifyio.py -h  # print out usage
