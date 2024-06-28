@@ -242,10 +242,12 @@ if __name__ == "__main__":
     parser.add_argument("--show_details", action="store_true", help="Show details of the conflicts")
     args = parser.parse_args()
 
+    t1 = time.time()
     reader = RecorderReader(args.traces_folder)
-
     mpi_nodes = read_mpi_nodes(reader)
     io_nodes, conflict_pairs = read_io_nodes(reader, args.traces_folder+"/conflicts.txt")
+    t2 = time.time()
+    print("IO time %.3f secs" %(t2-t1))
 
     all_nodes = mpi_nodes
     for rank in range(reader.GM.total_ranks):
