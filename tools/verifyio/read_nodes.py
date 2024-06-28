@@ -108,3 +108,125 @@ def read_io_nodes(reader, path):
         #    break;
 
     return io_nodes, pairs
+
+"""
+def read_io_nodes(reader, path):
+
+    # format: rank, seqId, func(mpifh, offset, count)
+    def parse_one_node(data, file_id):
+        args = data.split(",")
+        rank, seq_id, func, mpifh = int(args[0]), int(args[1]), args[2], args[3]
+        return VerifyIONode(rank, seq_id, func, file_id, mpifh)
+
+    exist_nodes = set()
+    exist_n2s = set()
+    duplicate = 0
+
+    nprocs = reader.GM.total_ranks
+    io_nodes = [[] for _ in repeat(None, nprocs)]
+    pairs = []
+
+    file_id = 0
+    filename = ""
+
+    with open(path, "r") as f:
+        next(f)  # skip the first line
+        for line in f:
+            if line.startswith("#"):
+                file_id, filename = line.strip().split(":")
+                continue
+
+            buf = line.strip().split(":")
+            n1_buf = buf[0]
+            n2s_buf = buf[1].split(" ")[:2]
+
+            if buf[1] not in exist_n2s:
+                exist_n2s.add(buf[1])
+
+            n1 = parse_one_node(n1_buf, file_id)
+            if n1_buf not in exist_nodes:
+                io_nodes[n1.rank].append(n1)
+                exist_nodes.add(n1_buf)
+
+            n2s = [[] for _ in repeat(None, nprocs)]
+            for n2_buf in n2s_buf:
+                n2 = parse_one_node(n2_buf, file_id)
+                if n2_buf not in exist_nodes:
+                    io_nodes[n2.rank].append(n2)
+                    exist_nodes.add(n2_buf)
+                n2s[n2.rank].append(n2)
+
+            pairs.append((n1, n2s))
+            # TODO: To save time, we check up to 1000 conflict pairs.
+            # if len(pairs) >= 1000:
+            #     break
+
+    return io_nodes, pairs
+
+
+def read_io_nodes(reader, path):
+    import mmap
+    from itertools import repeat
+    # format: rank,seqId,func(mpifh,offset,count)
+    def parse_one_node(data, file_id):
+        args = data.split(",")
+        rank, seq_id, func, mpifh = int(args[0]), int(args[1]), args[2], args[3]
+        return VerifyIONode(rank, seq_id, func, file_id, mpifh)
+
+    exist_nodes = set()
+    exist_n2s = set()
+    duplicate = 0
+
+    nprocs = reader.GM.total_ranks
+    io_nodes = [[] for i in repeat(None, nprocs)]
+    pairs = []
+
+    with open(path, 'r+') as file:
+        with mmap.mmap(file.fileno(), length=0, access=mmap.ACCESS_READ) as m:
+            m.readline()
+            # Initialize variables
+            file_id = None
+            filename = None
+
+            # Process remaining lines
+            for line in iter(m.readline, b""):
+                line = line.decode().strip()  # Decode the line from bytes to string and strip newlines
+
+                if line[0] == "#":
+                    file_id = line.split(":")[0]
+                    filename = line.split(":")[1]
+                    continue
+
+                buf = line.split(":")
+                n1_buf = buf[0]
+                n2s_buf = buf[1].split(" ")[:2]
+
+                if buf[1] not in exist_n2s:
+                    exist_n2s.add(buf[1])
+
+                n1 = parse_one_node(n1_buf, file_id)
+                if n1_buf not in exist_nodes:
+                    io_nodes[n1.rank].append(n1)
+                    exist_nodes.add(n1_buf)
+
+                n2s = [[] for i in repeat(None, nprocs)]
+                for n2_buf in n2s_buf:
+                    n2 = parse_one_node(n2_buf, file_id)
+                    if n2_buf not in exist_nodes:
+                        io_nodes[n2.rank].append(n2)
+                        exist_nodes.add(n2_buf)
+                    n2s[n2.rank].append(n2)
+
+                pairs.append((n1, n2s))
+        # TODO:
+        # To save time, we check up to 1000 conflict
+        # pairs.
+        #if len(pairs) >= 1000:
+        #    break;
+
+    return io_nodes, pairs
+
+
+"""
+
+

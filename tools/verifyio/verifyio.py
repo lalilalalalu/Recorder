@@ -109,7 +109,7 @@ def verify_session_semantics(G, conflict_pairs,
 
     properly_synchronized = True
     total = len(conflict_pairs)
-    i = 1
+    i = 0
     N = reader.GM.total_ranks
     summary = {
         'c_ranks_cnt': [[0 for _ in range(N)] for _ in range(N)],
@@ -122,7 +122,6 @@ def verify_session_semantics(G, conflict_pairs,
         #sys.stdout.write("%s/%s\r" %(i,total))
         #sys.stdout.flush()
 
-        i = i + 1
 
         n1, n2s = pair[0], pair[1]                   # n1:VerifyIONode, n2s[rank]: array of VerifyIONode
         for rank in range(len(n2s)):
@@ -142,7 +141,10 @@ def verify_session_semantics(G, conflict_pairs,
                 if not this_pair_ok:
                     if args.show_summary:
                         get_conflict_info([n1, n2], reader, summary, args.show_details, this_pair_ok)
+                    i = i + 1
                     properly_synchronized = False
+
+
     if args.show_summary:
         print_summary(summary)
     else:
@@ -260,7 +262,9 @@ if __name__ == "__main__":
         all_nodes[rank] = sorted(all_nodes[rank], key=lambda x: x.seq_id)
 
     # get mpi calls and matched edges
-    t1 = time.time()
+    t1 = time.time
+    print(len(io_nodes[0]))
+    print(len(mpi_nodes[0]))
     mpi_edges = match_mpi_calls(reader)
     t2 = time.time()
     print("match mpi calls: %.3f secs, mpi edges: %d" %((t2-t1),len(mpi_edges)))
