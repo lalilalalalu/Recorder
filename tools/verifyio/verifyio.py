@@ -236,7 +236,7 @@ def get_conflict_info(nodes: list, reader: RecorderReader, summary=None, show_de
         if show_details:
             r_str = build_call_chain_str(right_call_chain, reader)
             l_str = build_call_chain_str(reversed(left_call_chain), reader)
-            print(f"{nodes[0].rank}: {l_str} <--> {nodes[1].rank}: {r_str} on file {file}, properly synchronized: {this_pair_ok}")
+            print(f"{nodes[0]}: {l_str} <--> {nodes[1]}: {r_str} on file {file}, properly synchronized: {this_pair_ok}")
 
 if __name__ == "__main__":
 
@@ -255,6 +255,7 @@ if __name__ == "__main__":
     io_nodes, conflict_pairs = read_io_nodes(reader, args.traces_folder+"/conflicts.txt")
     t2 = time.time()
     print("IO time %.3f secs" %(t2-t1))
+    print("Total conflict pairs: %d" %len(conflict_pairs))
 
     all_nodes = mpi_nodes
     for rank in range(reader.GM.total_ranks):

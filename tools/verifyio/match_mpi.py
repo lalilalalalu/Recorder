@@ -478,7 +478,7 @@ def match_pt2pt(send_call, helper):
         #print("match pt2pt: %s --> %s" %(edge.head, edge.tail))
         return edge
     else:
-        print("Warnning: unmatched send call:", head_node, global_dst, send_call.stag)
+        #print("Warnning: unmatched send call:", head_node, global_dst, send_call.stag)
         return None
 
 
@@ -506,7 +506,8 @@ def match_mpi_calls(reader, mpi_sync_calls=False):
                 edges.append(edge)
 
     # validate result
-    for rank in range(helper.num_ranks):
+    """
+        for rank in range(helper.num_ranks):
         recvs_sum = 0
         for i in range(helper.num_ranks):
             recvs_sum += len(helper.recv_calls[rank][i])
@@ -519,5 +520,5 @@ def match_mpi_calls(reader, mpi_sync_calls=False):
         # not be set to matched and removed from the list
         #if len(helper.wait_test_calls[rank]) != 0:
         #    print("Rank %d has %d unmatched wait/test" %(rank, len(helper.wait_test_calls[rank])))
-
+    """
     return edges
