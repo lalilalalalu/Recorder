@@ -45,6 +45,26 @@ else()
     message(STATUS, "HDF5 not found")
 endif()
 
+# PnetCDF is not a CMAKE project, we use find_path() to locate it
+# this requires users to set -DRECORDER_WITH_PNETCDF=/xx/xx/
+find_path(PNETCDF_INCLUDE_DIRS pnetcdf.h ${RECORDER_WITH_PNETCDF}/include)
+if(PNETCDF_INCLUDE_DIRS)
+    message("-- " "PnetCDF found:" ${RECORDER_WITH_PNETCDF})
+    set(RECORDER_SRCS
+        ${CMAKE_CURRENT_SOURCE_DIR}/recorder-pnetcdf.c
+        ${RECORDER_SRCS}
+    )
+    include_directories(${PNETCDF_INCLUDE_DIRS})
+    set(PNETCDF_LIBRARIES ${RECORDER_WITH_PNETCDF}/lib/libpnetcdf.so)
+    set(RECORDER_EXT_INCLUDE_DEPENDENCIES ${PNETCDF_INCLUDE_DIRS}
+            ${RECORDER_EXT_INCLUDE_DEPENDENCIES})
+    set(RECORDER_EXT_LIB_DEPENDENCIES
+            ${PNETCDF_LIBRARIES} ${RECORDER_EXT_LIB_DEPENDENCIES})
+else()
+    message("-- " "PnetCDF not found. Will build Recorder without it.")
+endif()
+
+
 find_package(MPI REQUIRED)
 if(MPI_FOUND)
     include_directories(${MPI_CXX_INCLUDE_DIRS})
@@ -129,6 +149,7 @@ target_compile_definitions(recorder
         PRIVATE $<$<BOOL:${HAVE___LXSTAT64}>:HAVE___LXSTAT64>
         PRIVATE $<$<BOOL:${HAVE___FXSTAT}>:HAVE___FXSTAT>
         PRIVATE $<$<BOOL:${HAVE___FXSTAT64}>:HAVE___FXSTAT64>
+        PRIVATE $<$<BOOL:${PNETCDF_INCLUDE_DIRS}>:RECORDER_WITH_PNETCDF>
         PRIVATE $<$<BOOL:${RECORDER_ENABLE_FCNTL_TRACE}>:RECORDER_ENABLE_FCNTL_TRACE>
         PRIVATE $<$<BOOL:${RECORDER_ENABLE_CUDA_TRACE}>:RECORDER_ENABLE_CUDA_TRACE>
         )
