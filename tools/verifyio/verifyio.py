@@ -262,9 +262,7 @@ if __name__ == "__main__":
         all_nodes[rank] = sorted(all_nodes[rank], key=lambda x: x.seq_id)
 
     # get mpi calls and matched edges
-    t1 = time.time
-    print(len(io_nodes[0]))
-    print(len(mpi_nodes[0]))
+    t1 = time.time()
     mpi_edges = match_mpi_calls(reader)
     t2 = time.time()
     print("match mpi calls: %.3f secs, mpi edges: %d" %((t2-t1),len(mpi_edges)))
