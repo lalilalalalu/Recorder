@@ -116,6 +116,7 @@ def verify_session_semantics(G, conflict_pairs,
         'c_files_cnt': {},
         'c_functions_cnt': {}
     }
+    total_conflicts = 0
     for pair in conflict_pairs:
 
         # print progress
@@ -125,6 +126,7 @@ def verify_session_semantics(G, conflict_pairs,
 
         n1, n2s = pair[0], pair[1]                   # n1:VerifyIONode, n2s[rank]: array of VerifyIONode
         for rank in range(len(n2s)):
+            total_conflicts += len(n2s[rank])
             if len(n2s[rank]) < 1: continue
             # check if n1 happens-before the first in n2s[rank]
             # n1 ->hb n2s[rank][0], then n1 ->hb all n2s[rank]
@@ -149,6 +151,7 @@ def verify_session_semantics(G, conflict_pairs,
         print_summary(summary)
     else:
         print("Total conflicts: %d" %i)
+        print("Total conflict pairs: %d" %total_conflicts)
     return properly_synchronized
 
 def verify_mpi_semantics(G, conflict_pairs,  reader=None):
@@ -255,7 +258,6 @@ if __name__ == "__main__":
     io_nodes, conflict_pairs = read_io_nodes(reader, args.traces_folder+"/conflicts.txt")
     t2 = time.time()
     print("IO time %.3f secs" %(t2-t1))
-    print("Total conflict pairs: %d" %len(conflict_pairs))
 
     all_nodes = mpi_nodes
     for rank in range(reader.GM.total_ranks):
