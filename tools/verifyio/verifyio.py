@@ -140,9 +140,13 @@ def verify_session_semantics(G, conflict_pairs,
             for n2 in n2s[rank]:
                 this_pair_ok = (check_pair_in_order(n1, n2) or check_pair_in_order(n2, n1))
                 if not this_pair_ok:
-                    get_conflict_info([n1, n2], reader, summary, args.show_details, this_pair_ok)
+                    if args.show_summary:
+                        get_conflict_info([n1, n2], reader, summary, args.show_details, this_pair_ok)
                     properly_synchronized = False
-    print_summary(summary)
+    if args.show_summary:
+        print_summary(summary)
+    else:
+        print("Total conflicts: %d" %i)
     return properly_synchronized
 
 def verify_mpi_semantics(G, conflict_pairs,  reader=None):
@@ -240,6 +244,7 @@ if __name__ == "__main__":
     parser.add_argument("--semantics", type=str, choices=["POSIX", "MPI-IO", "Commit", "Session"],
                         default="MPI-IO", help="Verify if I/O operations are properly synchronized under the specific semantics")
     parser.add_argument("--show_details", action="store_true", help="Show details of the conflicts")
+    parser.add_argument("--show_summary", action="store_true", help="Show summary of the conflicts")
     args = parser.parse_args()
 
     t1 = time.time()
