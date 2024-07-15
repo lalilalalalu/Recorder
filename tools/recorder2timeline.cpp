@@ -32,6 +32,8 @@ static const char* type_name(int type) {
             return "HDF5";
         case RECORDER_FTRACE:
             return "USER";
+        default:
+            return "UNKNOWN";
     }
 }
 
