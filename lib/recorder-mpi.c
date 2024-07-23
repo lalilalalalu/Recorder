@@ -69,7 +69,7 @@ void add_mpi_file(MPI_Comm comm, MPI_File *file, CONST char* filename) {
     char* id = calloc(32, sizeof(char));
     if(rank == 0)
         sprintf(id, "%d-%d", world_rank, mpi_file_id++);
-    recorder_bcast(id, 32, MPI_BYTE, 0, comm);
+    recorder_bcast(id, 32, 0, comm);
     entry->id = id;
     char* tmp_filename = realrealpath(filename);
     entry->accept = accept_filename(tmp_filename);
@@ -122,7 +122,7 @@ int add_mpi_comm(MPI_Comm *newcomm) {
     char *id = calloc(32, sizeof(char));
     if(new_rank == 0)
         sprintf(id, "%d-%d", world_rank, mpi_comm_id++);
-    recorder_bcast(id, 32, MPI_BYTE, 0, *newcomm);
+    recorder_bcast(id, 32, 0, *newcomm);
     entry->id = id;
 
     HASH_ADD_KEYPTR(hh, mpi_comm_table, entry->key, sizeof(MPI_Comm), entry);
