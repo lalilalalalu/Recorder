@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <mpi.h>
 
 void utils_init();
 void utils_finalize();
@@ -12,6 +13,8 @@ pthread_t recorder_gettid(void);
 long get_file_size(const char *filename);       // return the size of a file
 int accept_filename(const char *filename);      // if include the file in trace
 double recorder_wtime(void);                    // return the timestamp
+void recorder_bcast(void *buffer, size_t count, MPI_Datatype datatype, int root, MPI_Comm comm);
+void recorder_barrier(MPI_Comm comm);
 char* itoa(off64_t val);                        // convert an integer to string
 char* ftoa(double val);                         // convert a float to string
 char* ptoa(const void* ptr);                    // convert a pointer to string
