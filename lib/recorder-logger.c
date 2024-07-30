@@ -53,6 +53,11 @@ void free_record(Record *record) {
         recorder_free(record->args, sizeof(char*)*record->arg_count);
     }
 
+    // we don't the return type so we use the system free()
+    if(record->res)
+        free(record->res);
+
+    record->res = NULL;
     record->args = NULL;
     recorder_free(record, sizeof(Record));
 }

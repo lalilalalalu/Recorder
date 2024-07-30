@@ -40,6 +40,7 @@ typedef struct Record_t {
     unsigned char arg_count;
     char **args;                // Store all arguments in array
     pthread_t tid;
+    void* res;                  // return value
 
     void* record_stack;         // per-thread record stack of cascading calls
     struct Record_t *prev, *next;

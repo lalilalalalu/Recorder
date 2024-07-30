@@ -56,7 +56,12 @@
     record->tstart = recorder_wtime();                                              \
     GOTCHA_SET_REAL_CALL_NOCHECK(func);                                             \
     ret res = GOTCHA_REAL_CALL(func) real_args ;                                    \
-    record->tend = recorder_wtime();
+    record->tend = recorder_wtime();                                                \
+    record->res = NULL;                                                             \
+    if (sizeof(ret)) {                                                              \
+        record->res = malloc(sizeof(ret));                                          \
+        memcpy(record->res, &res, sizeof(ret));                                     \
+    } 
 
 // Fortran wrappers call this
 // ierr is of type MPI_Fint*, set only for fortran calls
