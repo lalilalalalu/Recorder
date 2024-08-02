@@ -56,6 +56,9 @@ typedef struct RecorderReader_t {
     // and cfgs[rank]. 
     CST** csts;
     CFG** cfgs;     
+
+    int trace_version_major;
+    int trace_version_minor;
 } RecorderReader;
 
 
