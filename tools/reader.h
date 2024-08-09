@@ -63,7 +63,7 @@ typedef struct RecorderReader_t {
 
 
 /**
- * Similar but simplified structure
+ * Similar but simplified Record structure
  * for use by recorder-viz
  */
 typedef struct PyRecord_t {
