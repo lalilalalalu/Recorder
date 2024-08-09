@@ -312,8 +312,10 @@ void rule_application(RecorderReader* reader, CFG* cfg, CST* cst, int rule_id, u
     for(int i = 0; i < rule->symbols; i++) {
         int sym_val = rule->rule_body[2*i+0];
         int sym_exp = rule->rule_body[2*i+1];
+
         if (sym_val >= TERMINAL_START_ID) { // terminal
             for(int j = 0; j < sym_exp; j++) {
+
                 Record* record = reader_cs_to_record(&(cst->cs_list[sym_val]));
 
                 // Fill in timestamps
@@ -338,7 +340,9 @@ void rule_application(RecorderReader* reader, CFG* cfg, CST* cst, int rule_id, u
 // caller must free the timestamp
 // buffer after use
 uint32_t* read_timestamp_file(RecorderReader* reader, int rank) {
+
     char ts_fname[1096] = {0};
+    uint32_t* ts_buf = NULL;
 
     if (reader->trace_version_major==2 && reader->trace_version_minor==3) {
         sprintf(ts_fname, "%s/%d.ts", reader->logs_dir, rank);
@@ -347,7 +351,7 @@ uint32_t* read_timestamp_file(RecorderReader* reader, int rank) {
         long filesize = ftell(ts_file);
         fseek(ts_file, 0, SEEK_CUR);
 
-        uint32_t* ts_buf = (uint32_t*) malloc(filesize); 
+        ts_buf = (uint32_t*) malloc(filesize); 
         fread(ts_buf, 1, filesize, ts_file);
         fclose(ts_file);
 
@@ -374,7 +378,6 @@ uint32_t* read_timestamp_file(RecorderReader* reader, int rank) {
     fseek(ts_file, offset, SEEK_CUR);
 
     // finally read to the buffer
-    uint32_t* ts_buf;
     if (reader->metadata.ts_compression) {
         ts_buf = (uint32_t*) read_zlib(ts_file);
     } else {
@@ -382,6 +385,7 @@ uint32_t* read_timestamp_file(RecorderReader* reader, int rank) {
         fread(ts_buf, 1, buf_sizes[rank], ts_file);
     }
     fclose(ts_file);
+    return ts_buf;
 }
 
 
