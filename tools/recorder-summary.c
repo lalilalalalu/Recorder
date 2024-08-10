@@ -114,8 +114,6 @@ int main(int argc, char **argv) {
     CST* cst = reader_get_cst(&reader, 0);
     print_metadata(&reader);
     print_statistics(&reader, cst);
-    printf("here2\n");
-    fflush(stdout);
 
     if (show_cst) {
         print_cst(&reader, cst);
