@@ -255,7 +255,6 @@ class MPIMatchHelper:
                     continue
 
                 self.all_mpi_calls[rank].append(mpi_call)
-
                 # Note here the index is not the same as
                 # seq id. Seq id the index in trace records.
                 # The index here is the index of all_mpi_calls
