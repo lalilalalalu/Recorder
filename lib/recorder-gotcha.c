@@ -6,7 +6,7 @@ static bool mpi_tracing      = false;
 static bool mpiio_tracing    = true;
 static bool hdf5_tracing     = true;
 static bool pnetcdf_tracing  = true;
-static bool netcdf_tracing   = false;
+static bool netcdf_tracing   = true;
 
 struct gotcha_binding_t posix_wrap_actions [] = {
     GOTCHA_WRAP_ACTION(creat),

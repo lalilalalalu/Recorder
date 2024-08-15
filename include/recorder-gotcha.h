@@ -159,6 +159,8 @@ bool gotcha_netcdf_tracing();
             intercept = gotcha_hdf5_tracing();                          \
         if (func_type == RECORDER_PNETCDF)                              \
             intercept = gotcha_pnetcdf_tracing();                       \
+        if (func_type == RECORDER_NETCDF)                               \
+            intercept = gotcha_netcdf_tracing();                        \
         if (intercept) {                                                \
             void* funcptr = gotcha_get_wrappee(WRAPPEE_HANDLE(func));   \
             GOTCHA_REAL_CALL(func) = (WRAPPER_TYPE(func)) (funcptr);    \
