@@ -103,6 +103,12 @@ class Arg:
         # 'double', 'H5AC_cache_image_config_t', 'H5P_prp_set_func_t', 'H5G_stat_t', 'H5D_scatter_func_t', 
         # 'char *', 'H5_iter_order_t', 'H5FD_hdfs_fapl_t', 'H5F_mem_t', 'H5DS_iterate_t', 
         # 'H5FD_file_image_callbacks_t'
+
+        # NetCDF 4.9.2 Arg types:
+        # 'NC_memio', 'nc_type', 'void', 'NC_Dispatch', 'unsigned', 'size_t', 'long long', 'char', 
+        # 'double', 'signed char', 'nc_vlen_t', 'MPI_Info', 'unsigned short', 'int', 'MPI_Comm', 
+        # 'float', 'unsigned int', 'ptrdiff_t', 'long', 'unsigned long long', 'unsigned char', 'short'
+
         if self.is_type_ord() or self.is_type_ptr():
             # itoa
             if self.clean_arg_type in ["MPI_Offset", "short", "long", "long long", "unsigned long long", \
@@ -116,7 +122,7 @@ class Arg:
                 # TODO how about ptrptr type?
                 return "ftoa(%s)" %(self.get_safe_star_ptr() if self.is_type_ptr() else self.clean_arg_name)
             # strtoa
-            elif self.clean_arg_type in ["char", "unsigned char", "char *"]:
+            elif self.clean_arg_type in ["char", "unsigned char", "char *", "signed char"]:
                 if self.is_type_ptr():
                     return "strtoa(%s)" %(self.clean_arg_name)
                 elif self.is_type_ptrptr():
@@ -237,17 +243,17 @@ def print_gotcha_wrappees(funcs):
 if __name__ == "__main__":
 
     funcs = read_funcs(sys.argv[1])
-    print("Arg type set:")
-    print(arg_type_set)
+    #print("Arg type set:")
+    #print(arg_type_set)
 
     # 1. add in include/recorder-logger.h
     #print_func_names(funcs)
 
     # 2. add in include/recorder-gotcha.h
-    print_gotcha_wrappees(funcs)
+    #print_gotcha_wrappees(funcs)
 
     # 3. add in lib/recorder-gotcha.c
     #print_gotcha_bindings(funcs)
 
     # 4. add in lib/recorder-xxx.c (e.g., recorder-hdf5.c)
-    #print_gotcha_wrappers(funcs)
+    print_gotcha_wrappers(funcs)

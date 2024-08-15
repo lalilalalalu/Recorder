@@ -14,6 +14,11 @@
 #include "pnetcdf.h"
 #endif
 
+#ifdef RECORDER_WITH_NETCDF
+#include "netcdf.h"
+#include "netcdf_meta.h"
+#endif
+
 #include "gotcha/gotcha.h"
 #include "recorder-logger.h"
 
@@ -59,6 +64,7 @@
 #define H5I_future_realize_func_t   int
 #define H5I_future_discard_func_t   int
 #define H5ES_event_complete_func_t  int
+#define H5D_selection_io_mode_t     int
 #endif  /* H5_VERS_MINOR < 14 */
 
 #if H5_VERS_MINOR == 14
@@ -68,6 +74,17 @@
 #endif
 
 #endif  /* H5_VERS_MAJOR <= 1 */
+
+#ifdef NC_VERSION_MAJOR
+#ifdef NC_VERSION_MINOR
+
+#if (NC_VERSION_MAJOR*10+NC_VERSION_MINOR) < 49
+#define NC_memio    int
+#define NC_Dispatch int
+#endif
+
+#endif
+#endif
 
 
 /*
@@ -2011,5 +2028,311 @@ GOTCHA_WRAP(ncmpi_mget_varm_double_all, int, (int ncid, int num, int varids[], M
 GOTCHA_WRAP(ncmpi_mget_varm_longlong_all, int, (int ncid, int num, int varids[], MPI_Offset* const starts[], MPI_Offset* const counts[], MPI_Offset* const strides[], MPI_Offset* const imaps[], long long *bufs[]));
 GOTCHA_WRAP(ncmpi_mget_varm_ulonglong_all, int, (int ncid, int num, int varids[], MPI_Offset* const starts[], MPI_Offset* const counts[], MPI_Offset* const strides[], MPI_Offset* const imaps[], unsigned long long *bufs[]));
 #endif /* RECORDER_WITH_PNETCDF */
+
+#ifdef RECORDER_WITH_NETCDF
+GOTCHA_WRAP(nc__create, int, (const char *path, int cmode, size_t initialsz, size_t *chunksizehintp, int *ncidp));
+GOTCHA_WRAP(nc__enddef, int, (int ncid, size_t h_minfree, size_t v_align, size_t v_minfree, size_t r_align));
+GOTCHA_WRAP(nc__open, int, (const char *path, int omode, size_t *chunksizehintp, int *ncidp));
+GOTCHA_WRAP(nc_abort, int, (int ncid));
+GOTCHA_WRAP(nc_close, int, (int ncid));
+GOTCHA_WRAP(nc_close_memio, int, (int ncid, NC_memio *memio));
+GOTCHA_WRAP(nc_create, int, (const char *path, int cmode, int *ncidp));
+GOTCHA_WRAP(nc_create_mem, int, (const char *path, int mode, size_t initialsize, int *ncidp));
+GOTCHA_WRAP(nc_create_par, int, (const char *path, int cmode, MPI_Comm comm, MPI_Info info, int *ncidp));
+GOTCHA_WRAP(nc_create_par_fortran, int, (const char *path, int cmode, int comm, int info, int *ncidp));
+GOTCHA_WRAP(nc_def_user_format, int, (int mode_flag, NC_Dispatch *dispatch_table, char *magic_number));
+GOTCHA_WRAP(nc_enddef, int, (int ncid));
+GOTCHA_WRAP(nc_get_alignment, int, (int *thresholdp, int *alignmentp));
+GOTCHA_WRAP(nc_get_chunk_cache, int, (size_t *sizep, size_t *nelemsp, float *preemptionp));
+GOTCHA_WRAP(nc_inq, int, (int ncid, int *ndimsp, int *nvarsp, int *nattsp, int *unlimdimidp));
+GOTCHA_WRAP(nc_inq_format, int, (int ncid, int *formatp));
+GOTCHA_WRAP(nc_inq_format_extended, int, (int ncid, int *formatp, int *modep));
+GOTCHA_WRAP(nc_inq_path, int, (int ncid, size_t *pathlen, char *path));
+GOTCHA_WRAP(nc_inq_type, int, (int ncid, nc_type xtype, char *name, size_t *size));
+GOTCHA_WRAP(nc_inq_user_format, int, (int mode_flag, NC_Dispatch **dispatch_table, char *magic_number));
+GOTCHA_WRAP(nc_open, int, (const char *path, int omode, int *ncidp));
+GOTCHA_WRAP(nc_open_mem, int, (const char *path, int omode, size_t size, void *memory, int *ncidp));
+GOTCHA_WRAP(nc_open_memio, int, (const char *path, int omode, NC_memio *params, int *ncidp));
+GOTCHA_WRAP(nc_open_par, int, (const char *path, int omode, MPI_Comm comm, MPI_Info info, int *ncidp));
+GOTCHA_WRAP(nc_open_par_fortran, int, (const char *path, int omode, int comm, int info, int *ncidp));
+GOTCHA_WRAP(nc_redef, int, (int ncid));
+GOTCHA_WRAP(nc_set_alignment, int, (int threshold, int alignment));
+GOTCHA_WRAP(nc_set_chunk_cache, int, (size_t size, size_t nelems, float preemption));
+GOTCHA_WRAP(nc_set_fill, int, (int ncid, int fillmode, int *old_modep));
+GOTCHA_WRAP(nc_sync, int, (int ncid));
+GOTCHA_WRAP(nc_var_par_access, int, (int ncid, int varid, int par_access));
+GOTCHA_WRAP(nc_def_dim, int, (int ncid, const char *name, size_t len, int *idp));
+GOTCHA_WRAP(nc_inq_dim, int, (int ncid, int dimid, char *name, size_t *lenp));
+GOTCHA_WRAP(nc_inq_dimid, int, (int ncid, const char *name, int *idp));
+GOTCHA_WRAP(nc_inq_dimlen, int, (int ncid, int dimid, size_t *lenp));
+GOTCHA_WRAP(nc_inq_dimname, int, (int ncid, int dimid, char *name));
+GOTCHA_WRAP(nc_inq_ndims, int, (int ncid, int *ndimsp));
+GOTCHA_WRAP(nc_inq_unlimdim, int, (int ncid, int *unlimdimidp));
+GOTCHA_WRAP(nc_rename_dim, int, (int ncid, int dimid, const char *name));
+GOTCHA_WRAP(NC_atomictypelen, size_t, (nc_type xtype));
+GOTCHA_WRAP(NC_atomictypename, char *, (nc_type xtype));
+GOTCHA_WRAP(nc_def_var_blosc, int, (int ncid, int varid, unsigned subcompressor, unsigned level, unsigned blocksize, unsigned addshuffle));
+GOTCHA_WRAP(nc_inq_var_filter, int, (int ncid, int varid, unsigned int *idp, size_t *nparamsp, unsigned int *params));
+GOTCHA_WRAP(nc_inq_var_filter_ids, int, (int ncid, int varid, size_t *nfiltersp, unsigned int *ids));
+GOTCHA_WRAP(nc_inq_var_filter_info, int, (int ncid, int varid, unsigned int id, size_t *nparamsp, unsigned int *params));
+GOTCHA_WRAP(nctypelen, int, (nc_type type));
+GOTCHA_WRAP(nc_def_var, int, (int ncid, const char *name, nc_type xtype, int ndims, const int *dimidsp, int *varidp));
+GOTCHA_WRAP(nc_def_var_fill, int, (int ncid, int varid, int no_fill, const void *fill_value));
+GOTCHA_WRAP(nc_def_var_deflate, int, (int ncid, int varid, int shuffle, int deflate, int deflate_level));
+GOTCHA_WRAP(nc_def_var_quantize, int, (int ncid, int varid, int quantize_mode, int nsd));
+GOTCHA_WRAP(nc_def_var_fletcher32, int, (int ncid, int varid, int fletcher32));
+GOTCHA_WRAP(nc_def_var_chunking, int, (int ncid, int varid, int storage, const size_t *chunksizesp));
+GOTCHA_WRAP(nc_def_var_endian, int, (int ncid, int varid, int endian));
+GOTCHA_WRAP(nc_def_var_szip, int, (int ncid, int varid, int options_mask, int pixels_per_block));
+GOTCHA_WRAP(nc_rename_var, int, (int ncid, int varid, const char *name));
+GOTCHA_WRAP(nc_free_string, int, (size_t len, char **data));
+GOTCHA_WRAP(nc_set_var_chunk_cache, int, (int ncid, int varid, size_t size, size_t nelems, float preemption));
+GOTCHA_WRAP(nc_get_var_chunk_cache, int, (int ncid, int varid, size_t *sizep, size_t *nelemsp, float *preemptionp));
+GOTCHA_WRAP(nc_get_vara, int, (int ncid, int varid, const size_t *startp, const size_t *countp, void *ip));
+GOTCHA_WRAP(nc_get_vara_text, int, (int ncid, int varid, const size_t *startp, const size_t *countp, char *ip));
+GOTCHA_WRAP(nc_get_vara_schar, int, (int ncid, int varid, const size_t *startp, const size_t *countp, signed char *ip));
+GOTCHA_WRAP(nc_get_vara_uchar, int, (int ncid, int varid, const size_t *startp, const size_t *countp, unsigned char *ip));
+GOTCHA_WRAP(nc_get_vara_short, int, (int ncid, int varid, const size_t *startp, const size_t *countp, short *ip));
+GOTCHA_WRAP(nc_get_vara_int, int, (int ncid, int varid, const size_t *startp, const size_t *countp, int *ip));
+GOTCHA_WRAP(nc_get_vara_long, int, (int ncid, int varid, const size_t *startp, const size_t *countp, long *ip));
+GOTCHA_WRAP(nc_get_vara_float, int, (int ncid, int varid, const size_t *startp, const size_t *countp, float *ip));
+GOTCHA_WRAP(nc_get_vara_double, int, (int ncid, int varid, const size_t *startp, const size_t *countp, double *ip));
+GOTCHA_WRAP(nc_get_vara_ubyte, int, (int ncid, int varid, const size_t *startp, const size_t *countp, unsigned char *ip));
+GOTCHA_WRAP(nc_get_vara_ushort, int, (int ncid, int varid, const size_t *startp, const size_t *countp, unsigned short *ip));
+GOTCHA_WRAP(nc_get_vara_uint, int, (int ncid, int varid, const size_t *startp, const size_t *countp, unsigned int *ip));
+GOTCHA_WRAP(nc_get_vara_longlong, int, (int ncid, int varid, const size_t *startp, const size_t *countp, long long *ip));
+GOTCHA_WRAP(nc_get_vara_ulonglong, int, (int ncid, int varid, const size_t *startp, const size_t *countp, unsigned long long *ip));
+GOTCHA_WRAP(nc_get_vara_string, int, (int ncid, int varid, const size_t *startp, const size_t *countp, char **ip));
+GOTCHA_WRAP(nc_get_var1, int, (int ncid, int varid, const size_t *indexp, void *ip));
+GOTCHA_WRAP(nc_get_var1_text, int, (int ncid, int varid, const size_t *indexp, char *ip));
+GOTCHA_WRAP(nc_get_var1_schar, int, (int ncid, int varid, const size_t *indexp, signed char *ip));
+GOTCHA_WRAP(nc_get_var1_uchar, int, (int ncid, int varid, const size_t *indexp, unsigned char *ip));
+GOTCHA_WRAP(nc_get_var1_short, int, (int ncid, int varid, const size_t *indexp, short *ip));
+GOTCHA_WRAP(nc_get_var1_int, int, (int ncid, int varid, const size_t *indexp, int *ip));
+GOTCHA_WRAP(nc_get_var1_long, int, (int ncid, int varid, const size_t *indexp, long *ip));
+GOTCHA_WRAP(nc_get_var1_float, int, (int ncid, int varid, const size_t *indexp, float *ip));
+GOTCHA_WRAP(nc_get_var1_double, int, (int ncid, int varid, const size_t *indexp, double *ip));
+GOTCHA_WRAP(nc_get_var1_ubyte, int, (int ncid, int varid, const size_t *indexp, unsigned char *ip));
+GOTCHA_WRAP(nc_get_var1_ushort, int, (int ncid, int varid, const size_t *indexp, unsigned short *ip));
+GOTCHA_WRAP(nc_get_var1_uint, int, (int ncid, int varid, const size_t *indexp, unsigned int *ip));
+GOTCHA_WRAP(nc_get_var1_longlong, int, (int ncid, int varid, const size_t *indexp, long long *ip));
+GOTCHA_WRAP(nc_get_var1_ulonglong, int, (int ncid, int varid, const size_t *indexp, unsigned long long *ip));
+GOTCHA_WRAP(nc_get_var1_string, int, (int ncid, int varid, const size_t *indexp, char **ip));
+GOTCHA_WRAP(nc_get_var, int, (int ncid, int varid, void *ip));
+GOTCHA_WRAP(nc_get_var_text, int, (int ncid, int varid, char *ip));
+GOTCHA_WRAP(nc_get_var_schar, int, (int ncid, int varid, signed char *ip));
+GOTCHA_WRAP(nc_get_var_uchar, int, (int ncid, int varid, unsigned char *ip));
+GOTCHA_WRAP(nc_get_var_short, int, (int ncid, int varid, short *ip));
+GOTCHA_WRAP(nc_get_var_int, int, (int ncid, int varid, int *ip));
+GOTCHA_WRAP(nc_get_var_long, int, (int ncid, int varid, long *ip));
+GOTCHA_WRAP(nc_get_var_float, int, (int ncid, int varid, float *ip));
+GOTCHA_WRAP(nc_get_var_double, int, (int ncid, int varid, double *ip));
+GOTCHA_WRAP(nc_get_var_ubyte, int, (int ncid, int varid, unsigned char *ip));
+GOTCHA_WRAP(nc_get_var_ushort, int, (int ncid, int varid, unsigned short *ip));
+GOTCHA_WRAP(nc_get_var_uint, int, (int ncid, int varid, unsigned int *ip));
+GOTCHA_WRAP(nc_get_var_longlong, int, (int ncid, int varid, long long *ip));
+GOTCHA_WRAP(nc_get_var_ulonglong, int, (int ncid, int varid, unsigned long long *ip));
+GOTCHA_WRAP(nc_get_var_string, int, (int ncid, int varid, char **ip));
+GOTCHA_WRAP(nc_get_vars, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, void *ip));
+GOTCHA_WRAP(nc_get_vars_text, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, char *ip));
+GOTCHA_WRAP(nc_get_vars_schar, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, signed char *ip));
+GOTCHA_WRAP(nc_get_vars_uchar, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, unsigned char *ip));
+GOTCHA_WRAP(nc_get_vars_short, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, short *ip));
+GOTCHA_WRAP(nc_get_vars_int, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, int *ip));
+GOTCHA_WRAP(nc_get_vars_long, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, long *ip));
+GOTCHA_WRAP(nc_get_vars_float, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, float *ip));
+GOTCHA_WRAP(nc_get_vars_double, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, double *ip));
+GOTCHA_WRAP(nc_get_vars_ubyte, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, unsigned char *ip));
+GOTCHA_WRAP(nc_get_vars_ushort, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, unsigned short *ip));
+GOTCHA_WRAP(nc_get_vars_uint, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, unsigned int *ip));
+GOTCHA_WRAP(nc_get_vars_longlong, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, long long *ip));
+GOTCHA_WRAP(nc_get_vars_ulonglong, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, unsigned long long *ip));
+GOTCHA_WRAP(nc_get_vars_string, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, char **ip));
+GOTCHA_WRAP(nc_get_varm, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, void *ip));
+GOTCHA_WRAP(nc_get_varm_schar, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, signed char *ip));
+GOTCHA_WRAP(nc_get_varm_uchar, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, unsigned char *ip));
+GOTCHA_WRAP(nc_get_varm_short, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, short *ip));
+GOTCHA_WRAP(nc_get_varm_int, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, int *ip));
+GOTCHA_WRAP(nc_get_varm_long, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, long *ip));
+GOTCHA_WRAP(nc_get_varm_float, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, float *ip));
+GOTCHA_WRAP(nc_get_varm_double, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, double *ip));
+GOTCHA_WRAP(nc_get_varm_ubyte, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, unsigned char *ip));
+GOTCHA_WRAP(nc_get_varm_ushort, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, unsigned short *ip));
+GOTCHA_WRAP(nc_get_varm_uint, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, unsigned int *ip));
+GOTCHA_WRAP(nc_get_varm_longlong, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, long long *ip));
+GOTCHA_WRAP(nc_get_varm_ulonglong, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, unsigned long long *ip));
+GOTCHA_WRAP(nc_get_varm_text, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, char *ip));
+GOTCHA_WRAP(nc_get_varm_string, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, char **ip));
+GOTCHA_WRAP(nc_inq_varid, int, (int ncid, const char *name, int *varidp));
+GOTCHA_WRAP(nc_inq_var, int, (int ncid, int varid, char *name, nc_type *xtypep, int *ndimsp, int *dimidsp, int *nattsp));
+GOTCHA_WRAP(nc_inq_varname, int, (int ncid, int varid, char *name));
+GOTCHA_WRAP(nc_inq_vartype, int, (int ncid, int varid, nc_type *typep));
+GOTCHA_WRAP(nc_inq_varndims, int, (int ncid, int varid, int *ndimsp));
+GOTCHA_WRAP(nc_inq_vardimid, int, (int ncid, int varid, int *dimidsp));
+GOTCHA_WRAP(nc_inq_varnatts, int, (int ncid, int varid, int *nattsp));
+GOTCHA_WRAP(nc_inq_var_deflate, int, (int ncid, int varid, int *shufflep, int *deflatep, int *deflate_levelp));
+GOTCHA_WRAP(nc_inq_var_fletcher32, int, (int ncid, int varid, int *fletcher32p));
+GOTCHA_WRAP(nc_inq_var_chunking, int, (int ncid, int varid, int *storagep, size_t *chunksizesp));
+GOTCHA_WRAP(nc_inq_var_fill, int, (int ncid, int varid, int *no_fill, void *fill_valuep));
+GOTCHA_WRAP(nc_inq_var_quantize, int, (int ncid, int varid, int *quantize_modep, int *nsdp));
+GOTCHA_WRAP(nc_inq_var_endian, int, (int ncid, int varid, int *endianp));
+GOTCHA_WRAP(nc_inq_var_szip, int, (int ncid, int varid, int *options_maskp, int *pixels_per_blockp));
+GOTCHA_WRAP(nc_inq_unlimdims, int, (int ncid, int *nunlimdimsp, int *unlimdimidsp));
+GOTCHA_WRAP(nc_put_vara, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const void *op));
+GOTCHA_WRAP(nc_put_vara_text, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const char *op));
+GOTCHA_WRAP(nc_put_vara_schar, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const signed char *op));
+GOTCHA_WRAP(nc_put_vara_uchar, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const unsigned char *op));
+GOTCHA_WRAP(nc_put_vara_short, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const short *op));
+GOTCHA_WRAP(nc_put_vara_int, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const int *op));
+GOTCHA_WRAP(nc_put_vara_long, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const long *op));
+GOTCHA_WRAP(nc_put_vara_float, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const float *op));
+GOTCHA_WRAP(nc_put_vara_double, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const double *op));
+GOTCHA_WRAP(nc_put_vara_ubyte, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const unsigned char *op));
+GOTCHA_WRAP(nc_put_vara_ushort, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const unsigned short *op));
+GOTCHA_WRAP(nc_put_vara_uint, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const unsigned int *op));
+GOTCHA_WRAP(nc_put_vara_longlong, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const long long *op));
+GOTCHA_WRAP(nc_put_vara_ulonglong, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const unsigned long long *op));
+GOTCHA_WRAP(nc_put_vara_string, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const char **op));
+GOTCHA_WRAP(nc_put_var1, int, (int ncid, int varid, const size_t *indexp, const void *op));
+GOTCHA_WRAP(nc_put_var1_text, int, (int ncid, int varid, const size_t *indexp, const char *op));
+GOTCHA_WRAP(nc_put_var1_schar, int, (int ncid, int varid, const size_t *indexp, const signed char *op));
+GOTCHA_WRAP(nc_put_var1_uchar, int, (int ncid, int varid, const size_t *indexp, const unsigned char *op));
+GOTCHA_WRAP(nc_put_var1_short, int, (int ncid, int varid, const size_t *indexp, const short *op));
+GOTCHA_WRAP(nc_put_var1_int, int, (int ncid, int varid, const size_t *indexp, const int *op));
+GOTCHA_WRAP(nc_put_var1_long, int, (int ncid, int varid, const size_t *indexp, const long *op));
+GOTCHA_WRAP(nc_put_var1_float, int, (int ncid, int varid, const size_t *indexp, const float *op));
+GOTCHA_WRAP(nc_put_var1_double, int, (int ncid, int varid, const size_t *indexp, const double *op));
+GOTCHA_WRAP(nc_put_var1_ubyte, int, (int ncid, int varid, const size_t *indexp, const unsigned char *op));
+GOTCHA_WRAP(nc_put_var1_ushort, int, (int ncid, int varid, const size_t *indexp, const unsigned short *op));
+GOTCHA_WRAP(nc_put_var1_uint, int, (int ncid, int varid, const size_t *indexp, const unsigned int *op));
+GOTCHA_WRAP(nc_put_var1_longlong, int, (int ncid, int varid, const size_t *indexp, const long long *op));
+GOTCHA_WRAP(nc_put_var1_ulonglong, int, (int ncid, int varid, const size_t *indexp, const unsigned long long *op));
+GOTCHA_WRAP(nc_put_var1_string, int, (int ncid, int varid, const size_t *indexp, const char **op));
+GOTCHA_WRAP(nc_put_var, int, (int ncid, int varid, const void *op));
+GOTCHA_WRAP(nc_put_var_text, int, (int ncid, int varid, const char *op));
+GOTCHA_WRAP(nc_put_var_schar, int, (int ncid, int varid, const signed char *op));
+GOTCHA_WRAP(nc_put_var_uchar, int, (int ncid, int varid, const unsigned char *op));
+GOTCHA_WRAP(nc_put_var_short, int, (int ncid, int varid, const short *op));
+GOTCHA_WRAP(nc_put_var_int, int, (int ncid, int varid, const int *op));
+GOTCHA_WRAP(nc_put_var_long, int, (int ncid, int varid, const long *op));
+GOTCHA_WRAP(nc_put_var_float, int, (int ncid, int varid, const float *op));
+GOTCHA_WRAP(nc_put_var_double, int, (int ncid, int varid, const double *op));
+GOTCHA_WRAP(nc_put_var_ubyte, int, (int ncid, int varid, const unsigned char *op));
+GOTCHA_WRAP(nc_put_var_ushort, int, (int ncid, int varid, const unsigned short *op));
+GOTCHA_WRAP(nc_put_var_uint, int, (int ncid, int varid, const unsigned int *op));
+GOTCHA_WRAP(nc_put_var_longlong, int, (int ncid, int varid, const long long *op));
+GOTCHA_WRAP(nc_put_var_ulonglong, int, (int ncid, int varid, const unsigned long long *op));
+GOTCHA_WRAP(nc_put_var_string, int, (int ncid, int varid, const char **op));
+GOTCHA_WRAP(nc_put_vars, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const void *op));
+GOTCHA_WRAP(nc_put_vars_text, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const char *op));
+GOTCHA_WRAP(nc_put_vars_schar, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const signed char *op));
+GOTCHA_WRAP(nc_put_vars_uchar, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const unsigned char *op));
+GOTCHA_WRAP(nc_put_vars_short, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const short *op));
+GOTCHA_WRAP(nc_put_vars_int, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const int *op));
+GOTCHA_WRAP(nc_put_vars_long, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const long *op));
+GOTCHA_WRAP(nc_put_vars_float, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const float *op));
+GOTCHA_WRAP(nc_put_vars_double, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const double *op));
+GOTCHA_WRAP(nc_put_vars_ubyte, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const unsigned char *op));
+GOTCHA_WRAP(nc_put_vars_ushort, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const unsigned short *op));
+GOTCHA_WRAP(nc_put_vars_uint, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const unsigned int *op));
+GOTCHA_WRAP(nc_put_vars_longlong, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const long long *op));
+GOTCHA_WRAP(nc_put_vars_ulonglong, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const unsigned long long *op));
+GOTCHA_WRAP(nc_put_vars_string, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const char **op));
+GOTCHA_WRAP(nc_put_varm, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, const void *op));
+GOTCHA_WRAP(nc_put_varm_text, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, const char *op));
+GOTCHA_WRAP(nc_put_varm_schar, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, const signed char *op));
+GOTCHA_WRAP(nc_put_varm_uchar, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, const unsigned char *op));
+GOTCHA_WRAP(nc_put_varm_short, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, const short *op));
+GOTCHA_WRAP(nc_put_varm_int, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, const int *op));
+GOTCHA_WRAP(nc_put_varm_long, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, const long *op));
+GOTCHA_WRAP(nc_put_varm_float, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, const float *op));
+GOTCHA_WRAP(nc_put_varm_double, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, const double *op));
+GOTCHA_WRAP(nc_put_varm_ubyte, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, const unsigned char *op));
+GOTCHA_WRAP(nc_put_varm_ushort, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, const unsigned short *op));
+GOTCHA_WRAP(nc_put_varm_uint, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, const unsigned int *op));
+GOTCHA_WRAP(nc_put_varm_longlong, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, const long long *op));
+GOTCHA_WRAP(nc_put_varm_ulonglong, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, const unsigned long long *op));
+GOTCHA_WRAP(nc_put_varm_string, int, (int ncid, int varid, const size_t *startp, const size_t *countp, const ptrdiff_t *stridep, const ptrdiff_t *imapp, const char **op));
+GOTCHA_WRAP(nc_inq_att, int, (int ncid, int varid, const char *name, nc_type *xtypep, size_t *lenp));
+GOTCHA_WRAP(nc_inq_attid, int, (int ncid, int varid, const char *name, int *idp));
+GOTCHA_WRAP(nc_inq_attname, int, (int ncid, int varid, int attnum, char *name));
+GOTCHA_WRAP(nc_inq_natts, int, (int ncid, int *nattsp));
+GOTCHA_WRAP(nc_inq_atttype, int, (int ncid, int varid, const char *name, nc_type *xtypep));
+GOTCHA_WRAP(nc_inq_attlen, int, (int ncid, int varid, const char *name, size_t *lenp));
+GOTCHA_WRAP(nc_def_grp, int, (int parent_ncid, const char *name, int *new_ncid));
+GOTCHA_WRAP(nc_get_att, int, (int ncid, int varid, const char *name, void *value));
+GOTCHA_WRAP(nc_get_att_text, int, (int ncid, int varid, const char *name, char *value));
+GOTCHA_WRAP(nc_get_att_schar, int, (int ncid, int varid, const char *name, signed char *value));
+GOTCHA_WRAP(nc_get_att_uchar, int, (int ncid, int varid, const char *name, unsigned char *value));
+GOTCHA_WRAP(nc_get_att_short, int, (int ncid, int varid, const char *name, short *value));
+GOTCHA_WRAP(nc_get_att_int, int, (int ncid, int varid, const char *name, int *value));
+GOTCHA_WRAP(nc_get_att_long, int, (int ncid, int varid, const char *name, long *value));
+GOTCHA_WRAP(nc_get_att_float, int, (int ncid, int varid, const char *name, float *value));
+GOTCHA_WRAP(nc_get_att_double, int, (int ncid, int varid, const char *name, double *value));
+GOTCHA_WRAP(nc_get_att_ubyte, int, (int ncid, int varid, const char *name, unsigned char *value));
+GOTCHA_WRAP(nc_get_att_ushort, int, (int ncid, int varid, const char *name, unsigned short *value));
+GOTCHA_WRAP(nc_get_att_uint, int, (int ncid, int varid, const char *name, unsigned int *value));
+GOTCHA_WRAP(nc_get_att_longlong, int, (int ncid, int varid, const char *name, long long *value));
+GOTCHA_WRAP(nc_get_att_ulonglong, int, (int ncid, int varid, const char *name, unsigned long long *value));
+GOTCHA_WRAP(nc_get_att_string, int, (int ncid, int varid, const char *name, char **value));
+GOTCHA_WRAP(nc_put_att_string, int, (int ncid, int varid, const char *name, size_t len, const char **value));
+GOTCHA_WRAP(nc_put_att_text, int, (int ncid, int varid, const char *name, size_t len, const char *value));
+GOTCHA_WRAP(nc_put_att, int, (int ncid, int varid, const char *name, nc_type xtype, size_t len, const void *value));
+GOTCHA_WRAP(nc_put_att_schar, int, (int ncid, int varid, const char *name, nc_type xtype, size_t len, const signed char *value));
+GOTCHA_WRAP(nc_put_att_uchar, int, (int ncid, int varid, const char *name, nc_type xtype, size_t len, const unsigned char *value));
+GOTCHA_WRAP(nc_put_att_short, int, (int ncid, int varid, const char *name, nc_type xtype, size_t len, const short *value));
+GOTCHA_WRAP(nc_put_att_int, int, (int ncid, int varid, const char *name, nc_type xtype, size_t len, const int *value));
+GOTCHA_WRAP(nc_put_att_long, int, (int ncid, int varid, const char *name, nc_type xtype, size_t len, const long *value));
+GOTCHA_WRAP(nc_put_att_float, int, (int ncid, int varid, const char *name, nc_type xtype, size_t len, const float *value));
+GOTCHA_WRAP(nc_put_att_double, int, (int ncid, int varid, const char *name, nc_type xtype, size_t len, const double *value));
+GOTCHA_WRAP(nc_put_att_ubyte, int, (int ncid, int varid, const char *name, nc_type xtype, size_t len, const unsigned char *value));
+GOTCHA_WRAP(nc_put_att_ushort, int, (int ncid, int varid, const char *name, nc_type xtype, size_t len, const unsigned short *value));
+GOTCHA_WRAP(nc_put_att_uint, int, (int ncid, int varid, const char *name, nc_type xtype, size_t len, const unsigned int *value));
+GOTCHA_WRAP(nc_put_att_longlong, int, (int ncid, int varid, const char *name, nc_type xtype, size_t len, const long long *value));
+GOTCHA_WRAP(nc_put_att_ulonglong, int, (int ncid, int varid, const char *name, nc_type xtype, size_t len, const unsigned long long *value));
+GOTCHA_WRAP(nc_rename_att, int, (int ncid, int varid, const char *name, const char *newname));
+GOTCHA_WRAP(nc_del_att, int, (int ncid, int varid, const char *name));
+GOTCHA_WRAP(nc_inq_dimids, int, (int ncid, int *ndims, int *dimids, int include_parents));
+GOTCHA_WRAP(nc_inq_grp_full_ncid, int, (int ncid, const char *full_name, int *grp_ncid));
+GOTCHA_WRAP(nc_inq_grp_ncid, int, (int ncid, const char *grp_name, int *grp_ncid));
+GOTCHA_WRAP(nc_inq_grp_parent, int, (int ncid, int *parent_ncid));
+GOTCHA_WRAP(nc_inq_grpname, int, (int ncid, char *name));
+GOTCHA_WRAP(nc_inq_grpname_full, int, (int ncid, size_t *lenp, char *full_name));
+GOTCHA_WRAP(nc_inq_grpname_len, int, (int ncid, size_t *lenp));
+GOTCHA_WRAP(nc_inq_grps, int, (int ncid, int *numgrps, int *ncids));
+GOTCHA_WRAP(nc_inq_ncid, int, (int ncid, const char *name, int *grp_ncid));
+GOTCHA_WRAP(nc_inq_typeids, int, (int ncid, int *ntypes, int *typeids));
+GOTCHA_WRAP(nc_inq_varids, int, (int ncid, int *nvars, int *varids));
+GOTCHA_WRAP(nc_rename_grp, int, (int grpid, const char *name));
+GOTCHA_WRAP(nc_show_metadata, int, (int ncid));
+GOTCHA_WRAP(nc_inq_type_equal, int, (int ncid1, nc_type typeid1, int ncid2, nc_type typeid2, int *equal));
+GOTCHA_WRAP(nc_inq_typeid, int, (int ncid, const char *name, nc_type *typeidp));
+GOTCHA_WRAP(nc_inq_user_type, int, (int ncid, nc_type xtype, char *name, size_t *size, nc_type *base_nc_typep, size_t *nfieldsp, int *classp));
+GOTCHA_WRAP(nc_def_compound, int, (int ncid, size_t size, const char *name, nc_type *typeidp));
+GOTCHA_WRAP(nc_insert_compound, int, (int ncid, nc_type xtype, const char *name, size_t offset, nc_type field_typeid));
+GOTCHA_WRAP(nc_insert_array_compound, int, (int ncid, nc_type xtype, const char *name, size_t offset, nc_type field_typeid, int ndims, const int *dim_sizes));
+GOTCHA_WRAP(nc_inq_compound, int, (int ncid, nc_type xtype, char *name, size_t *sizep, size_t *nfieldsp));
+GOTCHA_WRAP(nc_inq_compound_name, int, (int ncid, nc_type xtype, char *name));
+GOTCHA_WRAP(nc_inq_compound_size, int, (int ncid, nc_type xtype, size_t *sizep));
+GOTCHA_WRAP(nc_inq_compound_nfields, int, (int ncid, nc_type xtype, size_t *nfieldsp));
+GOTCHA_WRAP(nc_inq_compound_field, int, (int ncid, nc_type xtype, int fieldid, char *name, size_t *offsetp, nc_type *field_typeidp, int *ndimsp, int *dim_sizesp));
+GOTCHA_WRAP(nc_inq_compound_fieldname, int, (int ncid, nc_type xtype, int fieldid, char *name));
+GOTCHA_WRAP(nc_inq_compound_fieldoffset, int, (int ncid, nc_type xtype, int fieldid, size_t *offsetp));
+GOTCHA_WRAP(nc_inq_compound_fieldtype, int, (int ncid, nc_type xtype, int fieldid, nc_type *field_typeidp));
+GOTCHA_WRAP(nc_inq_compound_fieldndims, int, (int ncid, nc_type xtype, int fieldid, int *ndimsp));
+GOTCHA_WRAP(nc_inq_compound_fielddim_sizes, int, (int ncid, nc_type xtype, int fieldid, int *dim_sizesp));
+GOTCHA_WRAP(nc_inq_compound_fieldindex, int, (int ncid, nc_type xtype, const char *name, int *fieldidp));
+GOTCHA_WRAP(nc_def_enum, int, (int ncid, nc_type base_typeid, const char *name, nc_type *typeidp));
+GOTCHA_WRAP(nc_insert_enum, int, (int ncid, nc_type xtype, const char *name, const void *value));
+GOTCHA_WRAP(nc_inq_enum, int, (int ncid, nc_type xtype, char *name, nc_type *base_nc_typep, size_t *base_sizep, size_t *num_membersp));
+GOTCHA_WRAP(nc_inq_enum_member, int, (int ncid, nc_type xtype, int idx, char *name, void *value));
+GOTCHA_WRAP(nc_inq_enum_ident, int, (int ncid, nc_type xtype, long long value, char *identifier));
+GOTCHA_WRAP(nc_free_vlen, int, (nc_vlen_t *vl));
+GOTCHA_WRAP(nc_free_vlens, int, (size_t len, nc_vlen_t vlens[]));
+GOTCHA_WRAP(nc_def_vlen, int, (int ncid, const char *name, nc_type base_typeid, nc_type *xtypep));
+GOTCHA_WRAP(nc_inq_vlen, int, (int ncid, nc_type xtype, char *name, size_t *datum_sizep, nc_type *base_nc_typep));
+GOTCHA_WRAP(nc_def_opaque, int, (int ncid, size_t size, const char *name, nc_type *xtypep));
+GOTCHA_WRAP(nc_inq_opaque, int, (int ncid, nc_type xtype, char *name, size_t *sizep));
+#endif /* RECORDER_WITH_NETCDF */
 
 #endif /* __RECORDER_GOTCHA_H */
