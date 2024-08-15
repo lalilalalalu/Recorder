@@ -28,7 +28,6 @@
 
 #if H5_VERS_MINOR < 10
 #define H5AC_cache_image_config_t   int
-#define H5D_chunk_iter_op_t         int
 #define H5F_info1_t                 int
 #define H5F_info2_t                 int
 #define H5F_file_space_type_t       int
@@ -50,16 +49,19 @@
 #define H5O_native_info_t   int
 #define H5VL_subclass_t     int
 #define H5R_ref_t           int
+#define H5D_chunk_iter_op_t int
 #endif  /* H5_VERS_MINOR < 12 */
 
 #if H5_VERS_MINOR < 14
 #define H5_atclose_func_t           int
-#define H5D_selection_io_mode_t     int
 #define H5ES_err_info_t             int
 #define H5ES_event_insert_func_t    int
 #define H5I_future_realize_func_t   int
 #define H5I_future_discard_func_t   int
 #define H5ES_event_complete_func_t  int
+#ifdef H5_VERS_RELEASE > 0
+#define H5D_selection_io_mode_t     int
+#endif
 #endif  /* H5_VERS_MINOR < 14 */
 #endif  /* H5_VERS_MAJOR <= 1 */
 
