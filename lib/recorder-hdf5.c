@@ -402,12 +402,6 @@ hid_t WRAPPER_NAME(H5Ssel_iter_create)(hid_t spaceid, size_t elmt_size, unsigned
 	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
-herr_t WRAPPER_NAME(H5Rdestroy)(H5R_ref_t *ref_ptr) {
-	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Rdestroy, (ref_ptr));
-	char **args = assemble_args_list(1, ptoa(ref_ptr));
-	RECORDER_INTERCEPTOR_EPILOGUE(1, args);
-}
-
 herr_t WRAPPER_NAME(H5Oget_info_by_name3)(hid_t loc_id, const char *name, H5O_info2_t *oinfo, unsigned fields, hid_t lapl_id) {
 	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Oget_info_by_name3, (loc_id, name, oinfo, fields, lapl_id));
 	char **args = assemble_args_list(5, itoa(loc_id),strtoa(name),ptoa(oinfo),itoa(fields),itoa(lapl_id));
@@ -702,12 +696,6 @@ herr_t WRAPPER_NAME(H5Pset_deflate)(hid_t plist_id, unsigned level) {
 	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 
-hid_t WRAPPER_NAME(H5Ropen_object)(H5R_ref_t *ref_ptr, hid_t rapl_id, hid_t oapl_id) {
-	RECORDER_INTERCEPTOR_PROLOGUE(hid_t, H5Ropen_object, (ref_ptr, rapl_id, oapl_id));
-	char **args = assemble_args_list(3, ptoa(ref_ptr),itoa(rapl_id),itoa(oapl_id));
-	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
-}
-
 herr_t WRAPPER_NAME(H5Pget_mcdt_search_cb)(hid_t plist_id, H5O_mcdt_search_cb_t *func, void **op_data) {
 	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Pget_mcdt_search_cb, (plist_id, func, op_data));
 	char **args = assemble_args_list(3, itoa(plist_id),ptoa(func),ptoa(op_data));
@@ -790,12 +778,6 @@ herr_t WRAPPER_NAME(H5TBwrite_fields_name)(hid_t loc_id, const char *dset_name, 
 	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5TBwrite_fields_name, (loc_id, dset_name, field_names, start, nrecords, type_size, field_offset, dst_sizes, buf));
 	char **args = assemble_args_list(9, itoa(loc_id),strtoa(dset_name),strtoa(field_names),itoa(start),itoa(nrecords),itoa(type_size),itoa((field_offset==NULL)?-1:*field_offset),itoa((dst_sizes==NULL)?-1:*dst_sizes),ptoa(buf));
 	RECORDER_INTERCEPTOR_EPILOGUE(9, args);
-}
-
-herr_t WRAPPER_NAME(H5atclose)(H5_atclose_func_t func, void *ctx) {
-	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5atclose, (func, ctx));
-	char **args = assemble_args_list(2, ptoa(&func),ptoa(ctx));
-	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 
 ssize_t WRAPPER_NAME(H5Rget_name)(hid_t loc_id, H5R_type_t ref_type, const void *ref, char *name, size_t size) {
@@ -882,12 +864,6 @@ herr_t WRAPPER_NAME(H5Pget_mpio_actual_io_mode)(hid_t plist_id, H5D_mpio_actual_
 	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 
-herr_t WRAPPER_NAME(H5Pset_selection_io)(hid_t plist_id, H5D_selection_io_mode_t selection_io_mode) {
-	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Pset_selection_io, (plist_id, selection_io_mode));
-	char **args = assemble_args_list(2, itoa(plist_id),ptoa(&selection_io_mode));
-	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
-}
-
 size_t WRAPPER_NAME(H5LDget_dset_type_size)(hid_t did, const char *fields) {
 	RECORDER_INTERCEPTOR_PROLOGUE(size_t, H5LDget_dset_type_size, (did, fields));
 	char **args = assemble_args_list(2, itoa(did),strtoa(fields));
@@ -942,12 +918,6 @@ htri_t WRAPPER_NAME(H5Zfilter_avail)(H5Z_filter_t id) {
 	RECORDER_INTERCEPTOR_EPILOGUE(1, args);
 }
 
-ssize_t WRAPPER_NAME(H5Rget_file_name)(const H5R_ref_t *ref_ptr, char *name, size_t size) {
-	RECORDER_INTERCEPTOR_PROLOGUE(ssize_t, H5Rget_file_name, (ref_ptr, name, size));
-	char **args = assemble_args_list(3, ptoa(ref_ptr),strtoa(name),itoa(size));
-	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
-}
-
 ssize_t WRAPPER_NAME(H5Pget_elink_prefix)(hid_t plist_id, char *prefix, size_t size) {
 	RECORDER_INTERCEPTOR_PROLOGUE(ssize_t, H5Pget_elink_prefix, (plist_id, prefix, size));
 	char **args = assemble_args_list(3, itoa(plist_id),strtoa(prefix),itoa(size));
@@ -988,12 +958,6 @@ char * WRAPPER_NAME(H5Eget_minor)(H5E_minor_t min) {
 	RECORDER_INTERCEPTOR_PROLOGUE(char *, H5Eget_minor, (min));
 	char **args = assemble_args_list(1, ptoa(&min));
 	RECORDER_INTERCEPTOR_EPILOGUE(1, args);
-}
-
-hid_t WRAPPER_NAME(H5Ropen_region)(H5R_ref_t *ref_ptr, hid_t rapl_id, hid_t oapl_id) {
-	RECORDER_INTERCEPTOR_PROLOGUE(hid_t, H5Ropen_region, (ref_ptr, rapl_id, oapl_id));
-	char **args = assemble_args_list(3, ptoa(ref_ptr),itoa(rapl_id),itoa(oapl_id));
-	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 int WRAPPER_NAME(H5Pget_preserve)(hid_t plist_id) {
@@ -1056,22 +1020,10 @@ htri_t WRAPPER_NAME(H5Tdetect_class)(hid_t type_id, H5T_class_t cls) {
 	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 
-herr_t WRAPPER_NAME(H5ESget_err_info)(hid_t es_id, size_t num_err_info, H5ES_err_info_t err_info[], size_t *err_cleared) {
-	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5ESget_err_info, (es_id, num_err_info, err_info, err_cleared));
-	char **args = assemble_args_list(4, itoa(es_id),itoa(num_err_info),ptoa(err_info),itoa((err_cleared==NULL)?-1:*err_cleared));
-	RECORDER_INTERCEPTOR_EPILOGUE(4, args);
-}
-
 herr_t WRAPPER_NAME(H5Eclose_msg)(hid_t err_id) {
 	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Eclose_msg, (err_id));
 	char **args = assemble_args_list(1, itoa(err_id));
 	RECORDER_INTERCEPTOR_EPILOGUE(1, args);
-}
-
-herr_t WRAPPER_NAME(H5Rcreate_attr)(hid_t loc_id, const char *name, const char *attr_name, hid_t oapl_id, H5R_ref_t *ref_ptr) {
-	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Rcreate_attr, (loc_id, name, attr_name, oapl_id, ref_ptr));
-	char **args = assemble_args_list(5, itoa(loc_id),strtoa(name),strtoa(attr_name),itoa(oapl_id),ptoa(ref_ptr));
-	RECORDER_INTERCEPTOR_EPILOGUE(5, args);
 }
 
 herr_t WRAPPER_NAME(H5Olink)(hid_t obj_id, hid_t new_loc_id, const char *new_name, hid_t lcpl_id, hid_t lapl_id) {
@@ -1200,12 +1152,6 @@ herr_t WRAPPER_NAME(H5Pget)(hid_t plist_id, const char *name, void *value) {
 	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
-hid_t WRAPPER_NAME(H5Ropen_attr)(H5R_ref_t *ref_ptr, hid_t rapl_id, hid_t aapl_id) {
-	RECORDER_INTERCEPTOR_PROLOGUE(hid_t, H5Ropen_attr, (ref_ptr, rapl_id, aapl_id));
-	char **args = assemble_args_list(3, ptoa(ref_ptr),itoa(rapl_id),itoa(aapl_id));
-	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
-}
-
 herr_t WRAPPER_NAME(H5Dwrite)(hid_t dset_id, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id, hid_t dxpl_id, const void *buf) {
 	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Dwrite, (dset_id, mem_type_id, mem_space_id, file_space_id, dxpl_id, buf));
 	char **args = assemble_args_list(6, itoa(dset_id),itoa(mem_type_id),itoa(mem_space_id),itoa(file_space_id),itoa(dxpl_id),ptoa(buf));
@@ -1222,12 +1168,6 @@ herr_t WRAPPER_NAME(H5Pget_vlen_mem_manager)(hid_t plist_id, H5MM_allocate_t *al
 	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Pget_vlen_mem_manager, (plist_id, alloc_func, alloc_info, free_func, free_info));
 	char **args = assemble_args_list(5, itoa(plist_id),ptoa(alloc_func),ptoa(alloc_info),ptoa(free_func),ptoa(free_info));
 	RECORDER_INTERCEPTOR_EPILOGUE(5, args);
-}
-
-herr_t WRAPPER_NAME(H5ESregister_insert_func)(hid_t es_id, H5ES_event_insert_func_t func, void *ctx) {
-	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5ESregister_insert_func, (es_id, func, ctx));
-	char **args = assemble_args_list(3, itoa(es_id),ptoa(&func),ptoa(ctx));
-	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 hid_t WRAPPER_NAME(H5Dcreate2)(hid_t loc_id, const char *name, hid_t type_id, hid_t space_id, hid_t lcpl_id, hid_t dcpl_id, hid_t dapl_id) {
@@ -1644,18 +1584,6 @@ herr_t WRAPPER_NAME(H5Sencode1)(hid_t obj_id, void *buf, size_t *nalloc) {
 	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
-H5R_type_t WRAPPER_NAME(H5Rget_type)(const H5R_ref_t *ref_ptr) {
-	RECORDER_INTERCEPTOR_PROLOGUE(H5R_type_t, H5Rget_type, (ref_ptr));
-	char **args = assemble_args_list(1, ptoa(ref_ptr));
-	RECORDER_INTERCEPTOR_EPILOGUE(1, args);
-}
-
-herr_t WRAPPER_NAME(H5Pget_selection_io)(hid_t plist_id, H5D_selection_io_mode_t *selection_io_mode) {
-	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Pget_selection_io, (plist_id, selection_io_mode));
-	char **args = assemble_args_list(2, itoa(plist_id),ptoa(selection_io_mode));
-	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
-}
-
 herr_t WRAPPER_NAME(H5Pset_fill_value)(hid_t plist_id, hid_t type_id, const void *value) {
 	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Pset_fill_value, (plist_id, type_id, value));
 	char **args = assemble_args_list(3, itoa(plist_id),itoa(type_id),ptoa(value));
@@ -1786,12 +1714,6 @@ herr_t WRAPPER_NAME(H5Pset_file_space)(hid_t plist_id, H5F_file_space_type_t str
 	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Pset_file_space, (plist_id, strategy, threshold));
 	char **args = assemble_args_list(3, itoa(plist_id),ptoa(&strategy),itoa(threshold));
 	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
-}
-
-htri_t WRAPPER_NAME(H5Requal)(const H5R_ref_t *ref1_ptr, const H5R_ref_t *ref2_ptr) {
-	RECORDER_INTERCEPTOR_PROLOGUE(htri_t, H5Requal, (ref1_ptr, ref2_ptr));
-	char **args = assemble_args_list(2, ptoa(ref1_ptr),ptoa(ref2_ptr));
-	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 
 herr_t WRAPPER_NAME(H5DOwrite_chunk)(hid_t dset_id, hid_t dxpl_id, uint32_t filters, const hsize_t *offset, size_t data_size, const void *buf) {
@@ -2064,12 +1986,6 @@ herr_t WRAPPER_NAME(H5Pset_attr_phase_change)(hid_t plist_id, unsigned max_compa
 	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
-herr_t WRAPPER_NAME(H5Rcreate_region)(hid_t loc_id, const char *name, hid_t space_id, hid_t oapl_id, H5R_ref_t *ref_ptr) {
-	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Rcreate_region, (loc_id, name, space_id, oapl_id, ref_ptr));
-	char **args = assemble_args_list(5, itoa(loc_id),strtoa(name),itoa(space_id),itoa(oapl_id),ptoa(ref_ptr));
-	RECORDER_INTERCEPTOR_EPILOGUE(5, args);
-}
-
 int WRAPPER_NAME(H5Iget_ref)(hid_t id) {
 	RECORDER_INTERCEPTOR_PROLOGUE(int, H5Iget_ref, (id));
 	char **args = assemble_args_list(1, itoa(id));
@@ -2206,12 +2122,6 @@ herr_t WRAPPER_NAME(H5Tset_size)(hid_t type_id, size_t size) {
 	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Tset_size, (type_id, size));
 	char **args = assemble_args_list(2, itoa(type_id),itoa(size));
 	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
-}
-
-herr_t WRAPPER_NAME(H5Rget_obj_type3)(H5R_ref_t *ref_ptr, hid_t rapl_id, H5O_type_t *obj_type) {
-	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Rget_obj_type3, (ref_ptr, rapl_id, obj_type));
-	char **args = assemble_args_list(3, ptoa(ref_ptr),itoa(rapl_id),ptoa(obj_type));
-	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 herr_t WRAPPER_NAME(H5TBAget_title)(hid_t loc_id, char *table_title) {
@@ -2440,12 +2350,6 @@ herr_t WRAPPER_NAME(H5LTset_attribute_ullong)(hid_t loc_id, const char *obj_name
 	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5LTset_attribute_ullong, (loc_id, obj_name, attr_name, buffer, size));
 	char **args = assemble_args_list(5, itoa(loc_id),strtoa(obj_name),strtoa(attr_name),itoa((buffer==NULL)?-1:*buffer),itoa(size));
 	RECORDER_INTERCEPTOR_EPILOGUE(5, args);
-}
-
-ssize_t WRAPPER_NAME(H5Rget_obj_name)(H5R_ref_t *ref_ptr, hid_t rapl_id, char *name, size_t size) {
-	RECORDER_INTERCEPTOR_PROLOGUE(ssize_t, H5Rget_obj_name, (ref_ptr, rapl_id, name, size));
-	char **args = assemble_args_list(4, ptoa(ref_ptr),itoa(rapl_id),strtoa(name),itoa(size));
-	RECORDER_INTERCEPTOR_EPILOGUE(4, args);
 }
 
 herr_t WRAPPER_NAME(H5Gget_info_by_name)(hid_t loc_id, const char *name, H5G_info_t *ginfo, hid_t lapl_id) {
@@ -2946,12 +2850,6 @@ herr_t WRAPPER_NAME(H5Oget_info_by_idx2)(hid_t loc_id, const char *group_name, H
 	RECORDER_INTERCEPTOR_EPILOGUE(8, args);
 }
 
-herr_t WRAPPER_NAME(H5Rcreate_object)(hid_t loc_id, const char *name, hid_t oapl_id, H5R_ref_t *ref_ptr) {
-	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Rcreate_object, (loc_id, name, oapl_id, ref_ptr));
-	char **args = assemble_args_list(4, itoa(loc_id),strtoa(name),itoa(oapl_id),ptoa(ref_ptr));
-	RECORDER_INTERCEPTOR_EPILOGUE(4, args);
-}
-
 herr_t WRAPPER_NAME(H5Ovisit_by_name3)(hid_t loc_id, const char *obj_name, H5_index_t idx_type, H5_iter_order_t order, H5O_iterate2_t op, void *op_data, unsigned fields, hid_t lapl_id) {
 	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Ovisit_by_name3, (loc_id, obj_name, idx_type, order, op, op_data, fields, lapl_id));
 	char **args = assemble_args_list(8, itoa(loc_id),strtoa(obj_name),itoa(idx_type),itoa(order),ptoa(&op),ptoa(op_data),itoa(fields),itoa(lapl_id));
@@ -3022,12 +2920,6 @@ herr_t WRAPPER_NAME(H5DSwith_new_ref)(hid_t obj_id, hbool_t *with_new_ref) {
 	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5DSwith_new_ref, (obj_id, with_new_ref));
 	char **args = assemble_args_list(2, itoa(obj_id),itoa((with_new_ref==NULL)?-1:*with_new_ref));
 	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
-}
-
-hid_t WRAPPER_NAME(H5Iregister_future)(H5I_type_t type, const void *object, H5I_future_realize_func_t realize_cb, H5I_future_discard_func_t discard_cb) {
-	RECORDER_INTERCEPTOR_PROLOGUE(hid_t, H5Iregister_future, (type, object, realize_cb, discard_cb));
-	char **args = assemble_args_list(4, ptoa(&type),ptoa(object),ptoa(&realize_cb),ptoa(&discard_cb));
-	RECORDER_INTERCEPTOR_EPILOGUE(4, args);
 }
 
 herr_t WRAPPER_NAME(H5Pget_relax_file_integrity_checks)(hid_t plist_id, uint64_t *flags) {
@@ -3286,12 +3178,6 @@ herr_t WRAPPER_NAME(H5Eget_auto1)(H5E_auto1_t *func, void **client_data) {
 	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Eget_auto1, (func, client_data));
 	char **args = assemble_args_list(2, ptoa(func),ptoa(client_data));
 	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
-}
-
-ssize_t WRAPPER_NAME(H5Rget_attr_name)(const H5R_ref_t *ref_ptr, char *name, size_t size) {
-	RECORDER_INTERCEPTOR_PROLOGUE(ssize_t, H5Rget_attr_name, (ref_ptr, name, size));
-	char **args = assemble_args_list(3, ptoa(ref_ptr),strtoa(name),itoa(size));
-	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 hid_t WRAPPER_NAME(H5Pget_virtual_vspace)(hid_t dcpl_id, size_t index) {
@@ -3984,12 +3870,6 @@ herr_t WRAPPER_NAME(H5Eunregister_class)(hid_t class_id) {
 	RECORDER_INTERCEPTOR_EPILOGUE(1, args);
 }
 
-herr_t WRAPPER_NAME(H5Rcopy)(const H5R_ref_t *src_ref_ptr, H5R_ref_t *dst_ref_ptr) {
-	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Rcopy, (src_ref_ptr, dst_ref_ptr));
-	char **args = assemble_args_list(2, ptoa(src_ref_ptr),ptoa(dst_ref_ptr));
-	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
-}
-
 hid_t WRAPPER_NAME(H5Eget_current_stack)(void) {
 	RECORDER_INTERCEPTOR_PROLOGUE(hid_t, H5Eget_current_stack, ());
 	char **args = NULL;
@@ -4236,22 +4116,10 @@ herr_t WRAPPER_NAME(H5Pfree_merge_committed_dtype_paths)(hid_t plist_id) {
 	RECORDER_INTERCEPTOR_EPILOGUE(1, args);
 }
 
-herr_t WRAPPER_NAME(H5ESregister_complete_func)(hid_t es_id, H5ES_event_complete_func_t func, void *ctx) {
-	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5ESregister_complete_func, (es_id, func, ctx));
-	char **args = assemble_args_list(3, itoa(es_id),ptoa(&func),ptoa(ctx));
-	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
-}
-
 hid_t WRAPPER_NAME(H5Rdereference2)(hid_t obj_id, hid_t oapl_id, H5R_type_t ref_type, const void *ref) {
 	RECORDER_INTERCEPTOR_PROLOGUE(hid_t, H5Rdereference2, (obj_id, oapl_id, ref_type, ref));
 	char **args = assemble_args_list(4, itoa(obj_id),itoa(oapl_id),ptoa(&ref_type),ptoa(ref));
 	RECORDER_INTERCEPTOR_EPILOGUE(4, args);
-}
-
-herr_t WRAPPER_NAME(H5ESfree_err_info)(size_t num_err_info, H5ES_err_info_t err_info[]) {
-	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5ESfree_err_info, (num_err_info, err_info));
-	char **args = assemble_args_list(2, itoa(num_err_info),ptoa(err_info));
-	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 
 herr_t WRAPPER_NAME(H5LTcopy_region)(const char *file_src, const char *path_src, const hsize_t *block_coord_src, const char *file_dest, const char *path_dest, const hsize_t *block_coord_dset) {
@@ -4686,6 +4554,90 @@ herr_t WRAPPER_NAME(H5Orefresh_async)(hid_t oid, hid_t es_id) {
 	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 
+herr_t WRAPPER_NAME(H5Rcreate_attr)(hid_t loc_id, const char *name, const char *attr_name, hid_t oapl_id, H5R_ref_t *ref_ptr) {
+	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Rcreate_attr, (loc_id, name, attr_name, oapl_id, ref_ptr));
+	char **args = assemble_args_list(5, itoa(loc_id),strtoa(name),strtoa(attr_name),itoa(oapl_id),ptoa(ref_ptr));
+	RECORDER_INTERCEPTOR_EPILOGUE(5, args);
+}
+
+ssize_t WRAPPER_NAME(H5Rget_file_name)(const H5R_ref_t *ref_ptr, char *name, size_t size) {
+	RECORDER_INTERCEPTOR_PROLOGUE(ssize_t, H5Rget_file_name, (ref_ptr, name, size));
+	char **args = assemble_args_list(3, ptoa(ref_ptr),strtoa(name),itoa(size));
+	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
+}
+
+herr_t WRAPPER_NAME(H5Rdestroy)(H5R_ref_t *ref_ptr) {
+	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Rdestroy, (ref_ptr));
+	char **args = assemble_args_list(1, ptoa(ref_ptr));
+	RECORDER_INTERCEPTOR_EPILOGUE(1, args);
+}
+
+hid_t WRAPPER_NAME(H5Ropen_object)(H5R_ref_t *ref_ptr, hid_t rapl_id, hid_t oapl_id) {
+	RECORDER_INTERCEPTOR_PROLOGUE(hid_t, H5Ropen_object, (ref_ptr, rapl_id, oapl_id));
+	char **args = assemble_args_list(3, ptoa(ref_ptr),itoa(rapl_id),itoa(oapl_id));
+	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
+}
+
+hid_t WRAPPER_NAME(H5Ropen_region)(H5R_ref_t *ref_ptr, hid_t rapl_id, hid_t oapl_id) {
+	RECORDER_INTERCEPTOR_PROLOGUE(hid_t, H5Ropen_region, (ref_ptr, rapl_id, oapl_id));
+	char **args = assemble_args_list(3, ptoa(ref_ptr),itoa(rapl_id),itoa(oapl_id));
+	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
+}
+
+hid_t WRAPPER_NAME(H5Ropen_attr)(H5R_ref_t *ref_ptr, hid_t rapl_id, hid_t aapl_id) {
+	RECORDER_INTERCEPTOR_PROLOGUE(hid_t, H5Ropen_attr, (ref_ptr, rapl_id, aapl_id));
+	char **args = assemble_args_list(3, ptoa(ref_ptr),itoa(rapl_id),itoa(aapl_id));
+	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
+}
+
+htri_t WRAPPER_NAME(H5Requal)(const H5R_ref_t *ref1_ptr, const H5R_ref_t *ref2_ptr) {
+	RECORDER_INTERCEPTOR_PROLOGUE(htri_t, H5Requal, (ref1_ptr, ref2_ptr));
+	char **args = assemble_args_list(2, ptoa(ref1_ptr),ptoa(ref2_ptr));
+	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
+}
+
+herr_t WRAPPER_NAME(H5Rget_obj_type3)(H5R_ref_t *ref_ptr, hid_t rapl_id, H5O_type_t *obj_type) {
+	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Rget_obj_type3, (ref_ptr, rapl_id, obj_type));
+	char **args = assemble_args_list(3, ptoa(ref_ptr),itoa(rapl_id),ptoa(obj_type));
+	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
+}
+
+ssize_t WRAPPER_NAME(H5Rget_obj_name)(H5R_ref_t *ref_ptr, hid_t rapl_id, char *name, size_t size) {
+	RECORDER_INTERCEPTOR_PROLOGUE(ssize_t, H5Rget_obj_name, (ref_ptr, rapl_id, name, size));
+	char **args = assemble_args_list(4, ptoa(ref_ptr),itoa(rapl_id),strtoa(name),itoa(size));
+	RECORDER_INTERCEPTOR_EPILOGUE(4, args);
+}
+
+herr_t WRAPPER_NAME(H5Rcreate_region)(hid_t loc_id, const char *name, hid_t space_id, hid_t oapl_id, H5R_ref_t *ref_ptr) {
+	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Rcreate_region, (loc_id, name, space_id, oapl_id, ref_ptr));
+	char **args = assemble_args_list(5, itoa(loc_id),strtoa(name),itoa(space_id),itoa(oapl_id),ptoa(ref_ptr));
+	RECORDER_INTERCEPTOR_EPILOGUE(5, args);
+}
+
+H5R_type_t WRAPPER_NAME(H5Rget_type)(const H5R_ref_t *ref_ptr) {
+	RECORDER_INTERCEPTOR_PROLOGUE(H5R_type_t, H5Rget_type, (ref_ptr));
+	char **args = assemble_args_list(1, ptoa(ref_ptr));
+	RECORDER_INTERCEPTOR_EPILOGUE(1, args);
+}
+
+herr_t WRAPPER_NAME(H5Rcreate_object)(hid_t loc_id, const char *name, hid_t oapl_id, H5R_ref_t *ref_ptr) {
+	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Rcreate_object, (loc_id, name, oapl_id, ref_ptr));
+	char **args = assemble_args_list(4, itoa(loc_id),strtoa(name),itoa(oapl_id),ptoa(ref_ptr));
+	RECORDER_INTERCEPTOR_EPILOGUE(4, args);
+}
+
+ssize_t WRAPPER_NAME(H5Rget_attr_name)(const H5R_ref_t *ref_ptr, char *name, size_t size) {
+	RECORDER_INTERCEPTOR_PROLOGUE(ssize_t, H5Rget_attr_name, (ref_ptr, name, size));
+	char **args = assemble_args_list(3, ptoa(ref_ptr),strtoa(name),itoa(size));
+	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
+}
+
+herr_t WRAPPER_NAME(H5Rcopy)(const H5R_ref_t *src_ref_ptr, H5R_ref_t *dst_ref_ptr) {
+	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Rcopy, (src_ref_ptr, dst_ref_ptr));
+	char **args = assemble_args_list(2, ptoa(src_ref_ptr),ptoa(dst_ref_ptr));
+	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
+}
+
 hid_t WRAPPER_NAME(H5Ropen_object_async)(unsigned app_line, H5R_ref_t *ref_ptr, hid_t rapl_id, hid_t oapl_id, hid_t es_id) {
 	RECORDER_INTERCEPTOR_PROLOGUE(hid_t, H5Ropen_object_async, (app_line, ref_ptr, rapl_id, oapl_id, es_id));
 	char **args = assemble_args_list(5, itoa(app_line),ptoa(ref_ptr),itoa(rapl_id),itoa(oapl_id),itoa(es_id));
@@ -4704,3 +4656,50 @@ hid_t WRAPPER_NAME(H5Ropen_attr_async)(H5R_ref_t *ref_ptr, hid_t rapl_id, hid_t 
 	RECORDER_INTERCEPTOR_EPILOGUE(4, args);
 }
 
+herr_t WRAPPER_NAME(H5atclose)(H5_atclose_func_t func, void *ctx) {
+	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5atclose, (func, ctx));
+	char **args = assemble_args_list(2, ptoa(&func),ptoa(ctx));
+	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
+}
+
+herr_t WRAPPER_NAME(H5Pset_selection_io)(hid_t plist_id, H5D_selection_io_mode_t selection_io_mode) {
+	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Pset_selection_io, (plist_id, selection_io_mode));
+	char **args = assemble_args_list(2, itoa(plist_id),ptoa(&selection_io_mode));
+	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
+}
+
+herr_t WRAPPER_NAME(H5Pget_selection_io)(hid_t plist_id, H5D_selection_io_mode_t *selection_io_mode) {
+	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5Pget_selection_io, (plist_id, selection_io_mode));
+	char **args = assemble_args_list(2, itoa(plist_id),ptoa(selection_io_mode));
+	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
+}
+
+herr_t WRAPPER_NAME(H5ESget_err_info)(hid_t es_id, size_t num_err_info, H5ES_err_info_t err_info[], size_t *err_cleared) {
+	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5ESget_err_info, (es_id, num_err_info, err_info, err_cleared));
+	char **args = assemble_args_list(4, itoa(es_id),itoa(num_err_info),ptoa(err_info),itoa((err_cleared==NULL)?-1:*err_cleared));
+	RECORDER_INTERCEPTOR_EPILOGUE(4, args);
+}
+
+herr_t WRAPPER_NAME(H5ESregister_insert_func)(hid_t es_id, H5ES_event_insert_func_t func, void *ctx) {
+	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5ESregister_insert_func, (es_id, func, ctx));
+	char **args = assemble_args_list(3, itoa(es_id),ptoa(&func),ptoa(ctx));
+	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
+}
+
+hid_t WRAPPER_NAME(H5Iregister_future)(H5I_type_t type, const void *object, H5I_future_realize_func_t realize_cb, H5I_future_discard_func_t discard_cb) {
+	RECORDER_INTERCEPTOR_PROLOGUE(hid_t, H5Iregister_future, (type, object, realize_cb, discard_cb));
+	char **args = assemble_args_list(4, ptoa(&type),ptoa(object),ptoa(&realize_cb),ptoa(&discard_cb));
+	RECORDER_INTERCEPTOR_EPILOGUE(4, args);
+}
+
+herr_t WRAPPER_NAME(H5ESfree_err_info)(size_t num_err_info, H5ES_err_info_t err_info[]) {
+	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5ESfree_err_info, (num_err_info, err_info));
+	char **args = assemble_args_list(2, itoa(num_err_info),ptoa(err_info));
+	RECORDER_INTERCEPTOR_EPILOGUE(2, args);
+}
+
+herr_t WRAPPER_NAME(H5ESregister_complete_func)(hid_t es_id, H5ES_event_complete_func_t func, void *ctx) {
+	RECORDER_INTERCEPTOR_PROLOGUE(herr_t, H5ESregister_complete_func, (es_id, func, ctx));
+	char **args = assemble_args_list(3, itoa(es_id),ptoa(&func),ptoa(ctx));
+	RECORDER_INTERCEPTOR_EPILOGUE(3, args);
+}

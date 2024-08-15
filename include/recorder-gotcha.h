@@ -24,6 +24,46 @@
 #define CONST
 #endif
 
+#if H5_VERS_MAJOR <= 1
+
+#if H5_VERS_MINOR < 10
+#define H5AC_cache_image_config_t   int
+#define H5D_chunk_iter_op_t         int
+#define H5F_info1_t                 int
+#define H5F_info2_t                 int
+#define H5F_file_space_type_t       int
+#define H5F_fspace_strategy_t       int
+#define H5F_flush_cb_t              int
+#define H5F_sect_info_t             int
+#endif
+
+#if H5_VERS_MINOR < 12
+#define H5O_token_t         int
+#define H5O_info1_t         int
+#define H5O_info2_t         int
+#define H5L_info1_t         int
+#define H5L_info2_t         int
+#define H5O_iterate1_t      int 
+#define H5O_iterate2_t      int 
+#define H5L_iterate2_t      int
+#define H5VL_class_value_t  int
+#define H5O_native_info_t   int
+#define H5VL_subclass_t     int
+#define H5R_ref_t           int
+#endif  /* H5_VERS_MINOR < 12 */
+
+#if H5_VERS_MINOR < 14
+#define H5_atclose_func_t           int
+#define H5D_selection_io_mode_t     int
+#define H5ES_err_info_t             int
+#define H5ES_event_insert_func_t    int
+#define H5I_future_realize_func_t   int
+#define H5I_future_discard_func_t   int
+#define H5ES_event_complete_func_t  int
+#endif  /* H5_VERS_MINOR < 14 */
+#endif  /* H5_VERS_MAJOR <= 1 */
+
+
 /*
  * Public functions
  */
@@ -329,7 +369,6 @@ GOTCHA_WRAP(H5Dwrite_chunk, herr_t, (hid_t dset_id, hid_t dxpl_id, uint32_t filt
 GOTCHA_WRAP(H5Sselect_copy, herr_t, (hid_t dst_id, hid_t src_id));
 GOTCHA_WRAP(H5Pset_dset_no_attrs_hint, herr_t, (hid_t dcpl_id, hbool_t minimize));
 GOTCHA_WRAP(H5Ssel_iter_create, hid_t, (hid_t spaceid, size_t elmt_size, unsigned flags));
-GOTCHA_WRAP(H5Rdestroy, herr_t, (H5R_ref_t *ref_ptr));
 GOTCHA_WRAP(H5Oget_info_by_name3, herr_t, (hid_t loc_id, const char *name, H5O_info2_t *oinfo, unsigned fields, hid_t lapl_id));
 GOTCHA_WRAP(H5Pget_obj_track_times, herr_t, (hid_t plist_id, hbool_t *track_times));
 GOTCHA_WRAP(H5Sselect_none, herr_t, (hid_t spaceid));
@@ -379,7 +418,6 @@ GOTCHA_WRAP(H5Aget_name, ssize_t, (hid_t attr_id, size_t buf_size, char *buf));
 GOTCHA_WRAP(H5TBget_table_info, herr_t, (hid_t loc_id, const char *dset_name, hsize_t *nfields, hsize_t *nrecords));
 GOTCHA_WRAP(H5Aread, herr_t, (hid_t attr_id, hid_t type_id, void *buf));
 GOTCHA_WRAP(H5Pset_deflate, herr_t, (hid_t plist_id, unsigned level));
-GOTCHA_WRAP(H5Ropen_object, hid_t, (H5R_ref_t *ref_ptr, hid_t rapl_id, hid_t oapl_id));
 GOTCHA_WRAP(H5Pget_mcdt_search_cb, herr_t, (hid_t plist_id, H5O_mcdt_search_cb_t *func, void **op_data));
 GOTCHA_WRAP(H5LTmake_dataset_double, herr_t, (hid_t loc_id, const char *dset_name, int rank, const hsize_t *dims, const double *buffer));
 GOTCHA_WRAP(H5LTtext_to_dtype, hid_t, (const char *text, H5LT_lang_t lang_type));
@@ -394,7 +432,6 @@ GOTCHA_WRAP(H5Pset_dxpl_mpio_chunk_opt_ratio, herr_t, (hid_t dxpl_id, unsigned p
 GOTCHA_WRAP(H5LTget_attribute_int, herr_t, (hid_t loc_id, const char *obj_name, const char *attr_name, int *data));
 GOTCHA_WRAP(H5Pset_obj_track_times, herr_t, (hid_t plist_id, hbool_t track_times));
 GOTCHA_WRAP(H5TBwrite_fields_name, herr_t, (hid_t loc_id, const char *dset_name, const char *field_names, hsize_t start, hsize_t nrecords, size_t type_size, const size_t *field_offset, const size_t *dst_sizes, const void *buf));
-GOTCHA_WRAP(H5atclose, herr_t, (H5_atclose_func_t func, void *ctx));
 GOTCHA_WRAP(H5Rget_name, ssize_t, (hid_t loc_id, H5R_type_t ref_type, const void *ref, char *name, size_t size));
 GOTCHA_WRAP(H5Pget_userblock, herr_t, (hid_t plist_id, hsize_t *size));
 GOTCHA_WRAP(H5Gopen1, hid_t, (hid_t loc_id, const char *name));
@@ -409,7 +446,6 @@ GOTCHA_WRAP(H5Eprint2, herr_t, (hid_t err_stack, FILE *stream));
 GOTCHA_WRAP(H5Aclose, herr_t, (hid_t attr_id));
 GOTCHA_WRAP(H5DSget_label, ssize_t, (hid_t did, unsigned int idx, char *label, size_t size));
 GOTCHA_WRAP(H5Pget_mpio_actual_io_mode, herr_t, (hid_t plist_id, H5D_mpio_actual_io_mode_t *actual_io_mode));
-GOTCHA_WRAP(H5Pset_selection_io, herr_t, (hid_t plist_id, H5D_selection_io_mode_t selection_io_mode));
 GOTCHA_WRAP(H5LDget_dset_type_size, size_t, (hid_t did, const char *fields));
 GOTCHA_WRAP(H5LTget_attribute_double, herr_t, (hid_t loc_id, const char *obj_name, const char *attr_name, double *data));
 GOTCHA_WRAP(H5IMunlink_palette, herr_t, (hid_t loc_id, const char *image_name, const char *pal_name));
@@ -419,7 +455,6 @@ GOTCHA_WRAP(H5Aget_storage_size, hsize_t, (hid_t attr_id));
 GOTCHA_WRAP(H5Pget_alloc_time, herr_t, (hid_t plist_id, H5D_alloc_time_t *alloc_time));
 GOTCHA_WRAP(H5Pget_small_data_block_size, herr_t, (hid_t fapl_id, hsize_t *size));
 GOTCHA_WRAP(H5Zfilter_avail, htri_t, (H5Z_filter_t id));
-GOTCHA_WRAP(H5Rget_file_name, ssize_t, (const H5R_ref_t *ref_ptr, char *name, size_t size));
 GOTCHA_WRAP(H5Pget_elink_prefix, ssize_t, (hid_t plist_id, char *prefix, size_t size));
 GOTCHA_WRAP(H5allocate_memory, void *, (size_t size, hbool_t clear));
 GOTCHA_WRAP(H5PLinsert, herr_t, (const char *search_path, unsigned int index));
@@ -427,7 +462,6 @@ GOTCHA_WRAP(H5Pget_no_selection_io_cause, herr_t, (hid_t plist_id, uint32_t *no_
 GOTCHA_WRAP(H5LTget_dataset_ndims, herr_t, (hid_t loc_id, const char *dset_name, int *rank));
 GOTCHA_WRAP(H5Pget_class, hid_t, (hid_t plist_id));
 GOTCHA_WRAP(H5Eget_minor, char *, (H5E_minor_t min));
-GOTCHA_WRAP(H5Ropen_region, hid_t, (H5R_ref_t *ref_ptr, hid_t rapl_id, hid_t oapl_id));
 GOTCHA_WRAP(H5Pget_preserve, int, (hid_t plist_id));
 GOTCHA_WRAP(H5Ovisit1, herr_t, (hid_t obj_id, H5_index_t idx_type, H5_iter_order_t order, H5O_iterate1_t op, void *op_data));
 GOTCHA_WRAP(H5Pget_gc_references, herr_t, (hid_t fapl_id, unsigned *gc_ref));
@@ -438,9 +472,7 @@ GOTCHA_WRAP(H5Fget_vfd_handle, herr_t, (hid_t file_id, hid_t fapl, void **file_h
 GOTCHA_WRAP(H5LRcopy_region, herr_t, (hid_t obj_id, hdset_reg_ref_t *ref, const char *file, const char *path, const hsize_t *block_coord));
 GOTCHA_WRAP(H5Acreate1, hid_t, (hid_t loc_id, const char *name, hid_t type_id, hid_t space_id, hid_t acpl_id));
 GOTCHA_WRAP(H5Tdetect_class, htri_t, (hid_t type_id, H5T_class_t cls));
-GOTCHA_WRAP(H5ESget_err_info, herr_t, (hid_t es_id, size_t num_err_info, H5ES_err_info_t err_info[], size_t *err_cleared));
 GOTCHA_WRAP(H5Eclose_msg, herr_t, (hid_t err_id));
-GOTCHA_WRAP(H5Rcreate_attr, herr_t, (hid_t loc_id, const char *name, const char *attr_name, hid_t oapl_id, H5R_ref_t *ref_ptr));
 GOTCHA_WRAP(H5Olink, herr_t, (hid_t obj_id, hid_t new_loc_id, const char *new_name, hid_t lcpl_id, hid_t lapl_id));
 GOTCHA_WRAP(H5PTget_next, herr_t, (hid_t table_id, size_t nrecords, void *data));
 GOTCHA_WRAP(H5Lexists, htri_t, (hid_t loc_id, const char *name, hid_t lapl_id));
@@ -462,11 +494,9 @@ GOTCHA_WRAP(H5Pfill_value_defined, herr_t, (hid_t plist, H5D_fill_value_t *statu
 GOTCHA_WRAP(H5Oopen_by_token, hid_t, (hid_t loc_id, H5O_token_t token));
 GOTCHA_WRAP(H5Pget_virtual_dsetname, ssize_t, (hid_t dcpl_id, size_t index, char *name, size_t size));
 GOTCHA_WRAP(H5Pget, herr_t, (hid_t plist_id, const char *name, void *value));
-GOTCHA_WRAP(H5Ropen_attr, hid_t, (H5R_ref_t *ref_ptr, hid_t rapl_id, hid_t aapl_id));
 GOTCHA_WRAP(H5Dwrite, herr_t, (hid_t dset_id, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id, hid_t dxpl_id, const void *buf));
 GOTCHA_WRAP(H5LTset_attribute_uchar, herr_t, (hid_t loc_id, const char *obj_name, const char *attr_name, const unsigned char *buffer, size_t size));
 GOTCHA_WRAP(H5Pget_vlen_mem_manager, herr_t, (hid_t plist_id, H5MM_allocate_t *alloc_func, void **alloc_info, H5MM_free_t *free_func, void **free_info));
-GOTCHA_WRAP(H5ESregister_insert_func, herr_t, (hid_t es_id, H5ES_event_insert_func_t func, void *ctx));
 GOTCHA_WRAP(H5Dcreate2, hid_t, (hid_t loc_id, const char *name, hid_t type_id, hid_t space_id, hid_t lcpl_id, hid_t dcpl_id, hid_t dapl_id));
 GOTCHA_WRAP(H5TBAget_fill, htri_t, (hid_t loc_id, const char *dset_name, hid_t dset_id, unsigned char *dst_buf));
 GOTCHA_WRAP(H5Pset_driver_by_name, herr_t, (hid_t plist_id, const char *driver_name, const char *driver_config));
@@ -536,8 +566,6 @@ GOTCHA_WRAP(H5IMget_palette, herr_t, (hid_t loc_id, const char *image_name, int 
 GOTCHA_WRAP(H5LTmake_dataset, herr_t, (hid_t loc_id, const char *dset_name, int rank, const hsize_t *dims, hid_t type_id, const void *buffer));
 GOTCHA_WRAP(H5Pset_coll_metadata_write, herr_t, (hid_t plist_id, hbool_t is_collective));
 GOTCHA_WRAP(H5Sencode1, herr_t, (hid_t obj_id, void *buf, size_t *nalloc));
-GOTCHA_WRAP(H5Rget_type, H5R_type_t, (const H5R_ref_t *ref_ptr));
-GOTCHA_WRAP(H5Pget_selection_io, herr_t, (hid_t plist_id, H5D_selection_io_mode_t *selection_io_mode));
 GOTCHA_WRAP(H5Pset_fill_value, herr_t, (hid_t plist_id, hid_t type_id, const void *value));
 GOTCHA_WRAP(H5Pset_alignment, herr_t, (hid_t fapl_id, hsize_t threshold, hsize_t alignment));
 GOTCHA_WRAP(H5Gclose, herr_t, (hid_t group_id));
@@ -560,7 +588,6 @@ GOTCHA_WRAP(H5Giterate, herr_t, (hid_t loc_id, const char *name, int *idx, H5G_i
 GOTCHA_WRAP(H5Tequal, htri_t, (hid_t type1_id, hid_t type2_id));
 GOTCHA_WRAP(H5Oget_native_info_by_name, herr_t, (hid_t loc_id, const char *name, H5O_native_info_t *oinfo, unsigned fields, hid_t lapl_id));
 GOTCHA_WRAP(H5Pset_file_space, herr_t, (hid_t plist_id, H5F_file_space_type_t strategy, hsize_t threshold));
-GOTCHA_WRAP(H5Requal, htri_t, (const H5R_ref_t *ref1_ptr, const H5R_ref_t *ref2_ptr));
 GOTCHA_WRAP(H5DOwrite_chunk, herr_t, (hid_t dset_id, hid_t dxpl_id, uint32_t filters, const hsize_t *offset, size_t data_size, const void *buf));
 GOTCHA_WRAP(H5PTget_num_packets, herr_t, (hid_t table_id, hsize_t *nrecords));
 GOTCHA_WRAP(H5Dget_access_plist, hid_t, (hid_t dset_id));
@@ -606,7 +633,6 @@ GOTCHA_WRAP(H5Oexists_by_name, htri_t, (hid_t loc_id, const char *name, hid_t la
 GOTCHA_WRAP(H5Pget_alignment, herr_t, (hid_t fapl_id, hsize_t *threshold, hsize_t *alignment));
 GOTCHA_WRAP(H5Eget_msg, ssize_t, (hid_t msg_id, H5E_type_t *type, char *msg, size_t size));
 GOTCHA_WRAP(H5Pset_attr_phase_change, herr_t, (hid_t plist_id, unsigned max_compact, unsigned min_dense));
-GOTCHA_WRAP(H5Rcreate_region, herr_t, (hid_t loc_id, const char *name, hid_t space_id, hid_t oapl_id, H5R_ref_t *ref_ptr));
 GOTCHA_WRAP(H5Iget_ref, int, (hid_t id));
 GOTCHA_WRAP(H5Acreate_by_name, hid_t, (hid_t loc_id, const char *obj_name, const char *attr_name, hid_t type_id, hid_t space_id, hid_t acpl_id, hid_t aapl_id, hid_t lapl_id));
 GOTCHA_WRAP(H5Dflush, herr_t, (hid_t dset_id));
@@ -630,7 +656,6 @@ GOTCHA_WRAP(H5Pget_virtual_srcspace, hid_t, (hid_t dcpl_id, size_t index));
 GOTCHA_WRAP(H5LTget_dataset_info, herr_t, (hid_t loc_id, const char *dset_name, hsize_t *dims, H5T_class_t *type_class, size_t *type_size));
 GOTCHA_WRAP(H5Fget_free_sections, ssize_t, (hid_t file_id, H5F_mem_t type, size_t nsects, H5F_sect_info_t *sect_info));
 GOTCHA_WRAP(H5Tset_size, herr_t, (hid_t type_id, size_t size));
-GOTCHA_WRAP(H5Rget_obj_type3, herr_t, (H5R_ref_t *ref_ptr, hid_t rapl_id, H5O_type_t *obj_type));
 GOTCHA_WRAP(H5TBAget_title, herr_t, (hid_t loc_id, char *table_title));
 GOTCHA_WRAP(H5garbage_collect, herr_t, (void));
 GOTCHA_WRAP(H5Pget_char_encoding, herr_t, (hid_t plist_id, H5T_cset_t *encoding));
@@ -669,7 +694,6 @@ GOTCHA_WRAP(H5Pget_nfilters, int, (hid_t plist_id));
 GOTCHA_WRAP(H5Sget_select_type, H5S_sel_type, (hid_t spaceid));
 GOTCHA_WRAP(H5Gget_create_plist, hid_t, (hid_t group_id));
 GOTCHA_WRAP(H5LTset_attribute_ullong, herr_t, (hid_t loc_id, const char *obj_name, const char *attr_name, const unsigned long long *buffer, size_t size));
-GOTCHA_WRAP(H5Rget_obj_name, ssize_t, (H5R_ref_t *ref_ptr, hid_t rapl_id, char *name, size_t size));
 GOTCHA_WRAP(H5Gget_info_by_name, herr_t, (hid_t loc_id, const char *name, H5G_info_t *ginfo, hid_t lapl_id));
 GOTCHA_WRAP(H5Tcreate, hid_t, (H5T_class_t type, size_t size));
 GOTCHA_WRAP(H5LTread_dataset_long, herr_t, (hid_t loc_id, const char *dset_name, long *buffer));
@@ -753,7 +777,6 @@ GOTCHA_WRAP(H5Pset_fapl_core, herr_t, (hid_t fapl_id, size_t increment, hbool_t 
 GOTCHA_WRAP(H5Pset_mpi_params, herr_t, (hid_t fapl_id, MPI_Comm comm, MPI_Info info));
 GOTCHA_WRAP(H5Glink2, herr_t, (hid_t cur_loc_id, const char *cur_name, H5L_type_t type, hid_t new_loc_id, const char *new_name));
 GOTCHA_WRAP(H5Oget_info_by_idx2, herr_t, (hid_t loc_id, const char *group_name, H5_index_t idx_type, H5_iter_order_t order, hsize_t n, H5O_info1_t *oinfo, unsigned fields, hid_t lapl_id));
-GOTCHA_WRAP(H5Rcreate_object, herr_t, (hid_t loc_id, const char *name, hid_t oapl_id, H5R_ref_t *ref_ptr));
 GOTCHA_WRAP(H5Ovisit_by_name3, herr_t, (hid_t loc_id, const char *obj_name, H5_index_t idx_type, H5_iter_order_t order, H5O_iterate2_t op, void *op_data, unsigned fields, hid_t lapl_id));
 GOTCHA_WRAP(H5Pencode1, herr_t, (hid_t plist_id, void *buf, size_t *nalloc));
 GOTCHA_WRAP(H5Pset_fapl_family, herr_t, (hid_t fapl_id, hsize_t memb_size, hid_t memb_fapl_id));
@@ -766,7 +789,6 @@ GOTCHA_WRAP(H5TBwrite_fields_index, herr_t, (hid_t loc_id, const char *dset_name
 GOTCHA_WRAP(H5LTread_dataset_char, herr_t, (hid_t loc_id, const char *dset_name, char *buffer));
 GOTCHA_WRAP(H5Pset_sym_k, herr_t, (hid_t plist_id, unsigned ik, unsigned lk));
 GOTCHA_WRAP(H5DSwith_new_ref, herr_t, (hid_t obj_id, hbool_t *with_new_ref));
-GOTCHA_WRAP(H5Iregister_future, hid_t, (H5I_type_t type, const void *object, H5I_future_realize_func_t realize_cb, H5I_future_discard_func_t discard_cb));
 GOTCHA_WRAP(H5Pget_relax_file_integrity_checks, herr_t, (hid_t plist_id, uint64_t *flags));
 GOTCHA_WRAP(H5Tlock, herr_t, (hid_t type_id));
 GOTCHA_WRAP(H5VLunregister_connector, herr_t, (hid_t connector_id));
@@ -810,7 +832,6 @@ GOTCHA_WRAP(H5VLget_connector_name, ssize_t, (hid_t id, char *name, size_t size)
 GOTCHA_WRAP(H5Oget_info_by_name2, herr_t, (hid_t loc_id, const char *name, H5O_info1_t *oinfo, unsigned fields, hid_t lapl_id));
 GOTCHA_WRAP(H5Tget_super, hid_t, (hid_t type));
 GOTCHA_WRAP(H5Eget_auto1, herr_t, (H5E_auto1_t *func, void **client_data));
-GOTCHA_WRAP(H5Rget_attr_name, ssize_t, (const H5R_ref_t *ref_ptr, char *name, size_t size));
 GOTCHA_WRAP(H5Pget_virtual_vspace, hid_t, (hid_t dcpl_id, size_t index));
 GOTCHA_WRAP(H5Ovisit2, herr_t, (hid_t obj_id, H5_index_t idx_type, H5_iter_order_t order, H5O_iterate1_t op, void *op_data, unsigned fields));
 GOTCHA_WRAP(H5Gcreate2, hid_t, (hid_t loc_id, const char *name, hid_t lcpl_id, hid_t gcpl_id, hid_t gapl_id));
@@ -926,7 +947,6 @@ GOTCHA_WRAP(H5Oopen, hid_t, (hid_t loc_id, const char *name, hid_t lapl_id));
 GOTCHA_WRAP(H5Lmove, herr_t, (hid_t src_loc, const char *src_name, hid_t dst_loc, const char *dst_name, hid_t lcpl_id, hid_t lapl_id));
 GOTCHA_WRAP(H5Trefresh, herr_t, (hid_t type_id));
 GOTCHA_WRAP(H5Eunregister_class, herr_t, (hid_t class_id));
-GOTCHA_WRAP(H5Rcopy, herr_t, (const H5R_ref_t *src_ref_ptr, H5R_ref_t *dst_ref_ptr));
 GOTCHA_WRAP(H5Eget_current_stack, hid_t, (void));
 GOTCHA_WRAP(H5Glink, herr_t, (hid_t cur_loc_id, H5L_type_t type, const char *cur_name, const char *new_name));
 GOTCHA_WRAP(H5Pget_buffer, size_t, (hid_t plist_id, void **tconv, void **bkg));
@@ -968,9 +988,7 @@ GOTCHA_WRAP(H5Otoken_from_str, herr_t, (hid_t loc_id, const char *token_str, H5O
 GOTCHA_WRAP(H5Pget_libver_bounds, herr_t, (hid_t plist_id, H5F_libver_t *low, H5F_libver_t *high));
 GOTCHA_WRAP(H5Pset_istore_k, herr_t, (hid_t plist_id, unsigned ik));
 GOTCHA_WRAP(H5Pfree_merge_committed_dtype_paths, herr_t, (hid_t plist_id));
-GOTCHA_WRAP(H5ESregister_complete_func, herr_t, (hid_t es_id, H5ES_event_complete_func_t func, void *ctx));
 GOTCHA_WRAP(H5Rdereference2, hid_t, (hid_t obj_id, hid_t oapl_id, H5R_type_t ref_type, const void *ref));
-GOTCHA_WRAP(H5ESfree_err_info, herr_t, (size_t num_err_info, H5ES_err_info_t err_info[]));
 GOTCHA_WRAP(H5LTcopy_region, herr_t, (const char *file_src, const char *path_src, const hsize_t *block_coord_src, const char *file_dest, const char *path_dest, const hsize_t *block_coord_dset));
 GOTCHA_WRAP(H5LTread_dataset, herr_t, (hid_t loc_id, const char *dset_name, hid_t type_id, void *buffer));
 GOTCHA_WRAP(H5Pset_preserve, herr_t, (hid_t plist_id, hbool_t status));
@@ -1043,9 +1061,31 @@ GOTCHA_WRAP(H5Ocopy_async, herr_t, (hid_t src_loc_id, const char *src_name, hid_
 GOTCHA_WRAP(H5Oclose_async, herr_t, (hid_t object_id, hid_t es_id));
 GOTCHA_WRAP(H5Oflush_async, herr_t, (hid_t obj_id, hid_t es_id));
 GOTCHA_WRAP(H5Orefresh_async, herr_t, (hid_t oid, hid_t es_id));
+GOTCHA_WRAP(H5Rcreate_attr, herr_t, (hid_t loc_id, const char *name, const char *attr_name, hid_t oapl_id, H5R_ref_t *ref_ptr));
+GOTCHA_WRAP(H5Rget_file_name, ssize_t, (const H5R_ref_t *ref_ptr, char *name, size_t size));
+GOTCHA_WRAP(H5Rdestroy, herr_t, (H5R_ref_t *ref_ptr));
+GOTCHA_WRAP(H5Ropen_object, hid_t, (H5R_ref_t *ref_ptr, hid_t rapl_id, hid_t oapl_id));
+GOTCHA_WRAP(H5Ropen_region, hid_t, (H5R_ref_t *ref_ptr, hid_t rapl_id, hid_t oapl_id));
+GOTCHA_WRAP(H5Ropen_attr, hid_t, (H5R_ref_t *ref_ptr, hid_t rapl_id, hid_t aapl_id));
+GOTCHA_WRAP(H5Requal, htri_t, (const H5R_ref_t *ref1_ptr, const H5R_ref_t *ref2_ptr));
+GOTCHA_WRAP(H5Rget_obj_type3, herr_t, (H5R_ref_t *ref_ptr, hid_t rapl_id, H5O_type_t *obj_type));
+GOTCHA_WRAP(H5Rget_obj_name, ssize_t, (H5R_ref_t *ref_ptr, hid_t rapl_id, char *name, size_t size));
+GOTCHA_WRAP(H5Rcreate_region, herr_t, (hid_t loc_id, const char *name, hid_t space_id, hid_t oapl_id, H5R_ref_t *ref_ptr));
+GOTCHA_WRAP(H5Rget_type, H5R_type_t, (const H5R_ref_t *ref_ptr));
+GOTCHA_WRAP(H5Rcreate_object, herr_t, (hid_t loc_id, const char *name, hid_t oapl_id, H5R_ref_t *ref_ptr));
+GOTCHA_WRAP(H5Rget_attr_name, ssize_t, (const H5R_ref_t *ref_ptr, char *name, size_t size));
+GOTCHA_WRAP(H5Rcopy, herr_t, (const H5R_ref_t *src_ref_ptr, H5R_ref_t *dst_ref_ptr));
 GOTCHA_WRAP(H5Ropen_object_async, hid_t, (unsigned app_line, H5R_ref_t *ref_ptr, hid_t rapl_id, hid_t oapl_id, hid_t es_id));
 GOTCHA_WRAP(H5Ropen_region_async, hid_t, (H5R_ref_t *ref_ptr, hid_t rapl_id, hid_t oapl_id, hid_t es_id));
 GOTCHA_WRAP(H5Ropen_attr_async, hid_t, (H5R_ref_t *ref_ptr, hid_t rapl_id, hid_t aapl_id, hid_t es_id));
+GOTCHA_WRAP(H5atclose, herr_t, (H5_atclose_func_t func, void *ctx));
+GOTCHA_WRAP(H5Pset_selection_io, herr_t, (hid_t plist_id, H5D_selection_io_mode_t selection_io_mode));
+GOTCHA_WRAP(H5Pget_selection_io, herr_t, (hid_t plist_id, H5D_selection_io_mode_t *selection_io_mode));
+GOTCHA_WRAP(H5ESget_err_info, herr_t, (hid_t es_id, size_t num_err_info, H5ES_err_info_t err_info[], size_t *err_cleared));
+GOTCHA_WRAP(H5ESregister_insert_func, herr_t, (hid_t es_id, H5ES_event_insert_func_t func, void *ctx));
+GOTCHA_WRAP(H5Iregister_future, hid_t, (H5I_type_t type, const void *object, H5I_future_realize_func_t realize_cb, H5I_future_discard_func_t discard_cb));
+GOTCHA_WRAP(H5ESfree_err_info, herr_t, (size_t num_err_info, H5ES_err_info_t err_info[]));
+GOTCHA_WRAP(H5ESregister_complete_func, herr_t, (hid_t es_id, H5ES_event_complete_func_t func, void *ctx));
 
 // PnetCDF functions
 #ifdef RECORDER_WITH_PNETCDF

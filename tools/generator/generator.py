@@ -237,17 +237,17 @@ def print_gotcha_wrappees(funcs):
 if __name__ == "__main__":
 
     funcs = read_funcs(sys.argv[1])
-    #print("Arg type set:")
-    #print(arg_type_set)
+    print("Arg type set:")
+    print(arg_type_set)
 
     # 1. add in include/recorder-logger.h
     #print_func_names(funcs)
 
     # 2. add in include/recorder-gotcha.h
-    #print_gotcha_wrappees(funcs)
+    print_gotcha_wrappees(funcs)
 
     # 3. add in lib/recorder-gotcha.c
     #print_gotcha_bindings(funcs)
 
     # 4. add in lib/recorder-xxx.c (e.g., recorder-hdf5.c)
-    print_gotcha_wrappers(funcs)
+    #print_gotcha_wrappers(funcs)
