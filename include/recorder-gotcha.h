@@ -59,10 +59,14 @@
 #define H5I_future_realize_func_t   int
 #define H5I_future_discard_func_t   int
 #define H5ES_event_complete_func_t  int
-#ifdef H5_VERS_RELEASE > 0
+#endif  /* H5_VERS_MINOR < 14 */
+
+#if H5_VERS_MINOR == 14
+#if H5_VERS_RELEASE == 0
 #define H5D_selection_io_mode_t     int
 #endif
-#endif  /* H5_VERS_MINOR < 14 */
+#endif
+
 #endif  /* H5_VERS_MAJOR <= 1 */
 
 
