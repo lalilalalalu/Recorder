@@ -174,7 +174,9 @@ static const char* func_list[] = {
     // MPI 84 functions
     "MPI_File_close",              "MPI_File_set_size",       "MPI_File_iread_at",
     "MPI_File_iread",              "MPI_File_iread_shared",   "MPI_File_iwrite_at",
-    "MPI_File_iwrite",             "MPI_File_iwrite_shared",  "MPI_File_open",
+    "MPI_File_iwrite",             "MPI_File_iwrite_shared",  
+    "MPI_File_iwrite_all",         "MPI_File_iwrite_at_all",
+    "MPI_File_open",
     "MPI_File_read_all_begin",     "MPI_File_read_all",       "MPI_File_read_at_all",
     "MPI_File_read_at_all_begin",  "MPI_File_read_at",        "MPI_File_read",
     "MPI_File_read_ordered_begin", "MPI_File_read_ordered",   "MPI_File_read_shared",
@@ -782,7 +784,7 @@ static const char* func_list[] = {
     "ncmpi_mget_varm_text_all", "ncmpi_mget_varm_schar_all", "ncmpi_mget_varm_uchar_all",
     "ncmpi_mget_varm_short_all", "ncmpi_mget_varm_ushort_all", "ncmpi_mget_varm_int_all",
     "ncmpi_mget_varm_uint_all", "ncmpi_mget_varm_long_all", "ncmpi_mget_varm_float_all",
-    "ncmpi_mget_varm_double_all", "ncmpi_mget_varm_longlong_all", "ncmpi_mget_varm_ulonglong_all"
+    "ncmpi_mget_varm_double_all", "ncmpi_mget_varm_longlong_all", "ncmpi_mget_varm_ulonglong_all",
 
     // NetCDF 4.9.2
     "nc__create", "nc__enddef", "nc__open",

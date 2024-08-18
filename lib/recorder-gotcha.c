@@ -103,6 +103,8 @@ struct gotcha_binding_t mpiio_wrap_actions [] = {
     GOTCHA_WRAP_ACTION(MPI_File_iwrite_at),
     GOTCHA_WRAP_ACTION(MPI_File_iwrite),
     GOTCHA_WRAP_ACTION(MPI_File_iwrite_shared),
+    GOTCHA_WRAP_ACTION(MPI_File_iwrite_all),
+    GOTCHA_WRAP_ACTION(MPI_File_iwrite_at_all),
     GOTCHA_WRAP_ACTION(MPI_File_open),
     GOTCHA_WRAP_ACTION(MPI_File_read_all_begin),
     GOTCHA_WRAP_ACTION(MPI_File_read_all),

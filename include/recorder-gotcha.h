@@ -272,6 +272,8 @@ GOTCHA_WRAP(MPI_File_iread_shared, int, (MPI_File fh, void *buf, int count, MPI_
 GOTCHA_WRAP(MPI_File_iwrite_at, int, (MPI_File fh, MPI_Offset offset, CONST void *buf, int count, MPI_Datatype datatype, __D_MPI_REQUEST *request));
 GOTCHA_WRAP(MPI_File_iwrite, int, (MPI_File fh, CONST void *buf, int count, MPI_Datatype datatype, __D_MPI_REQUEST *request));
 GOTCHA_WRAP(MPI_File_iwrite_shared, int, (MPI_File fh, CONST void *buf, int count, MPI_Datatype datatype, __D_MPI_REQUEST *request));
+GOTCHA_WRAP(MPI_File_iwrite_all, int, (MPI_File fh, CONST void *buf, int count, MPI_Datatype datatype, __D_MPI_REQUEST *request));
+GOTCHA_WRAP(MPI_File_iwrite_at_all, int, (MPI_File fh, MPI_Offset offset, CONST void *buf, int count, MPI_Datatype datatype, __D_MPI_REQUEST *request));
 GOTCHA_WRAP(MPI_File_open, int, (MPI_Comm comm, CONST char *filename, int amode, MPI_Info info, MPI_File *fh));
 GOTCHA_WRAP(MPI_File_read_all_begin, int, (MPI_File fh, void *buf, int count, MPI_Datatype datatype));
 GOTCHA_WRAP(MPI_File_read_all, int, (MPI_File fh, void *buf, int count, MPI_Datatype datatype, MPI_Status *status));
