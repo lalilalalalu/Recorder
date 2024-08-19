@@ -80,12 +80,12 @@ def get_shortest_path(G, src, dst):
     path_str = ""
     for i in range(len(path)):
         node = path[i]
-        path_str += str(node) 
+        path_str += str(node)
         if i != len(path) - 1:
             path_str += "->"
     return path_str
 
-def verify_session_semantics(G, conflict_pairs, 
+def verify_session_semantics(G, conflict_pairs,
                              close_ops=["close", "fclose"],
                              open_ops=["open", "fopen"], reader=None, show_details=False):
     def check_pair_in_order(n1 , n2):
@@ -109,23 +109,24 @@ def verify_session_semantics(G, conflict_pairs,
 
     properly_synchronized = True
     total = len(conflict_pairs)
-    i = 1
+    i = 0
     N = reader.GM.total_ranks
     summary = {
         'c_ranks_cnt': [[0 for _ in range(N)] for _ in range(N)],
         'c_files_cnt': {},
         'c_functions_cnt': {}
     }
+    total_conflicts = 0
     for pair in conflict_pairs:
 
         # print progress
         #sys.stdout.write("%s/%s\r" %(i,total))
         #sys.stdout.flush()
 
-        i = i + 1
 
         n1, n2s = pair[0], pair[1]                   # n1:VerifyIONode, n2s[rank]: array of VerifyIONode
         for rank in range(len(n2s)):
+            total_conflicts += len(n2s[rank])
             if len(n2s[rank]) < 1: continue
             # check if n1 happens-before the first in n2s[rank]
             # n1 ->hb n2s[rank][0], then n1 ->hb all n2s[rank]
@@ -140,15 +141,23 @@ def verify_session_semantics(G, conflict_pairs,
             for n2 in n2s[rank]:
                 this_pair_ok = (check_pair_in_order(n1, n2) or check_pair_in_order(n2, n1))
                 if not this_pair_ok:
-                    get_conflict_info([n1, n2], reader, summary, args.show_details, this_pair_ok)
+                    if args.show_summary:
+                        get_conflict_info([n1, n2], reader, summary, args.show_details, this_pair_ok)
+                    i = i + 1
                     properly_synchronized = False
-    print_summary(summary)
+
+
+    if args.show_summary:
+        print_summary(summary)
+    else:
+        print("Total conflicts: %d" %i)
+        print("Total conflict pairs: %d" %total_conflicts)
     return properly_synchronized
 
 def verify_mpi_semantics(G, conflict_pairs,  reader=None):
     return verify_session_semantics(G, conflict_pairs,
-                             close_ops = ["MPI_File_sync", "MPI_File_close"], \
-                             open_ops  = ["MPI_File_sync", "MPI_File_open"], reader=reader)
+                                    close_ops = ["MPI_File_sync", "MPI_File_close"], \
+                                    open_ops  = ["MPI_File_sync", "MPI_File_open"], reader=reader)
 
 def verify_commit_semantics(G, conflict_pairs):
 
@@ -230,7 +239,7 @@ def get_conflict_info(nodes: list, reader: RecorderReader, summary=None, show_de
         if show_details:
             r_str = build_call_chain_str(right_call_chain, reader)
             l_str = build_call_chain_str(reversed(left_call_chain), reader)
-            print(f"{nodes[0].rank}: {l_str} <--> {nodes[1].rank}: {r_str} on file {file}, properly synchronized: {this_pair_ok}")
+            print(f"{nodes[0]}: {l_str} <--> {nodes[1]}: {r_str} on file {file}, properly synchronized: {this_pair_ok}")
 
 if __name__ == "__main__":
 
@@ -240,12 +249,15 @@ if __name__ == "__main__":
     parser.add_argument("--semantics", type=str, choices=["POSIX", "MPI-IO", "Commit", "Session"],
                         default="MPI-IO", help="Verify if I/O operations are properly synchronized under the specific semantics")
     parser.add_argument("--show_details", action="store_true", help="Show details of the conflicts")
+    parser.add_argument("--show_summary", action="store_true", help="Show summary of the conflicts")
     args = parser.parse_args()
 
+    t1 = time.time()
     reader = RecorderReader(args.traces_folder)
-
     mpi_nodes = read_mpi_nodes(reader)
     io_nodes, conflict_pairs = read_io_nodes(reader, args.traces_folder+"/conflicts.txt")
+    t2 = time.time()
+    print("IO time %.3f secs" %(t2-t1))
 
     all_nodes = mpi_nodes
     for rank in range(reader.GM.total_ranks):
@@ -260,15 +272,10 @@ if __name__ == "__main__":
 
     t1 = time.time()
     G = VerifyIOGraph(all_nodes, mpi_edges, include_vc=True)
-    t2 = time.time()
-    print("build happens-before graph: %.3f secs, nodes: %d" %((t2-t1), G.num_nodes()))
-
-    # Correct code (traces) should result in 
-    # a DAG without any cycles
-    if G.check_cycles(): quit()
-
     G.run_vector_clock()
     #G.run_transitive_closure()
+    t2 = time.time()
+    print("build happens-before graph: %.3f secs, nodes: %d" %((t2-t1), G.num_nodes()))
 
     # G.plot_graph("vgraph.jpg")
 
