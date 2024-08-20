@@ -52,7 +52,7 @@ class MPICall():
 class MPIMatchHelper:
     def __init__(self, reader, mpi_sync_calls):
         self.recorder_reader = reader
-        self.num_ranks       = reader.GM.total_ranks
+        self.num_ranks       = reader.nprocs
         self.all_mpi_calls   = [[] for i in repeat(None, self.num_ranks)]
 
         self.recv_calls      = [[[] for i in repeat(None, self.num_ranks)] for j in repeat(None, self.num_ranks)]
@@ -243,7 +243,7 @@ class MPIMatchHelper:
         ignored_funcs = set()
         for rank in range(self.num_ranks):
             records = reader.records[rank]
-            for seq_id in range(reader.LMs[rank].total_records):
+            for seq_id in range(reader.num_records[rank]):
 
                 func_name = reader.funcs[records[seq_id].func_id]
                 mpi_call = self.read_one_mpi_call(rank, seq_id, records[seq_id])
@@ -286,7 +286,7 @@ class MPIMatchHelper:
 
         for rank in range(self.num_ranks):
             records = self.recorder_reader.records[rank]
-            for i in range(self.recorder_reader.LMs[rank].total_records):
+            for i in range(self.recorder_reader.num_records[rank]):
                 record = records[i]
                 func = func_list[record.func_id]
 
@@ -478,7 +478,7 @@ def match_pt2pt(send_call, helper):
         #print("match pt2pt: %s --> %s" %(edge.head, edge.tail))
         return edge
     else:
-        print("Warnning: unmatched send call:", head_node, global_dst, send_call.stag)
+        #print("Warnning: unmatched send call:", head_node, global_dst, send_call.stag)
         return None
 
 
