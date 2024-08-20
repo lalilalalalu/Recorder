@@ -1,5 +1,5 @@
 import argparse, time, sys
-from recorder_viz import RecorderReader
+from recorder_reader import RecorderReader
 from read_nodes import read_mpi_nodes, read_io_nodes
 from match_mpi import match_mpi_calls
 from verifyio_graph import VerifyIONode, VerifyIOGraph
@@ -80,12 +80,12 @@ def get_shortest_path(G, src, dst):
     path_str = ""
     for i in range(len(path)):
         node = path[i]
-        path_str += str(node)
+        path_str += str(node) 
         if i != len(path) - 1:
             path_str += "->"
     return path_str
 
-def verify_session_semantics(G, conflict_pairs,
+def verify_session_semantics(G, conflict_pairs, 
                              close_ops=["close", "fclose"],
                              open_ops=["open", "fopen"], reader=None, show_details=False):
     def check_pair_in_order(n1 , n2):
@@ -110,9 +110,8 @@ def verify_session_semantics(G, conflict_pairs,
     properly_synchronized = True
     total = len(conflict_pairs)
     i = 0
-    N = reader.GM.total_ranks
     summary = {
-        'c_ranks_cnt': [[0 for _ in range(N)] for _ in range(N)],
+        'c_ranks_cnt': [[0 for _ in range(reader.nprocs)] for _ in range(reader.nprocs)],
         'c_files_cnt': {},
         'c_functions_cnt': {}
     }
@@ -122,7 +121,6 @@ def verify_session_semantics(G, conflict_pairs,
         # print progress
         #sys.stdout.write("%s/%s\r" %(i,total))
         #sys.stdout.flush()
-
 
         n1, n2s = pair[0], pair[1]                   # n1:VerifyIONode, n2s[rank]: array of VerifyIONode
         for rank in range(len(n2s)):
@@ -252,30 +250,53 @@ if __name__ == "__main__":
     parser.add_argument("--show_summary", action="store_true", help="Show summary of the conflicts")
     args = parser.parse_args()
 
+    import resource
+    import psutil
+    print(resource.getrusage(resource.RUSAGE_SELF))
+    print('1. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
+
     t1 = time.time()
     reader = RecorderReader(args.traces_folder)
+    print(resource.getrusage(resource.RUSAGE_SELF))
+    print('2. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
+
     mpi_nodes = read_mpi_nodes(reader)
+    print(resource.getrusage(resource.RUSAGE_SELF))
+    print('3. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
+
     io_nodes, conflict_pairs = read_io_nodes(reader, args.traces_folder+"/conflicts.txt")
     t2 = time.time()
     print("IO time %.3f secs" %(t2-t1))
+    print('4. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
     all_nodes = mpi_nodes
-    for rank in range(reader.GM.total_ranks):
+    for rank in range(reader.nprocs):
         all_nodes[rank] += io_nodes[rank]
         all_nodes[rank] = sorted(all_nodes[rank], key=lambda x: x.seq_id)
+    print('5. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
     # get mpi calls and matched edges
     t1 = time.time()
     mpi_edges = match_mpi_calls(reader)
     t2 = time.time()
+    print('6. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
     print("match mpi calls: %.3f secs, mpi edges: %d" %((t2-t1),len(mpi_edges)))
 
     t1 = time.time()
     G = VerifyIOGraph(all_nodes, mpi_edges, include_vc=True)
+    t2 = time.time()
+    print("build happens-before graph: %.3f secs, nodes: %d" %((t2-t1), G.num_nodes()))
+    print('7. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
+
+    # Correct code (traces) should result in 
+    # a DAG without any cycles
+    if G.check_cycles(): quit()
+
     G.run_vector_clock()
     #G.run_transitive_closure()
     t2 = time.time()
     print("build happens-before graph: %.3f secs, nodes: %d" %((t2-t1), G.num_nodes()))
+    print('8. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
     # G.plot_graph("vgraph.jpg")
 
@@ -290,6 +311,7 @@ if __name__ == "__main__":
     elif args.semantics == "Session":
         p = verify_session_semantics(G, conflict_pairs, reader)
     t2 = time.time()
+    print('9. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
     if p:
         print("\nProperly synchronized under %s semantics" %args.semantics)

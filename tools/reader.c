@@ -527,3 +527,71 @@ PyRecord** read_all_records(char* traces_dir, size_t* counts, RecorderMetadata *
 
     return records;
 }
+
+void recorder_fill_metadata(char* traces_dir, RecorderMetadata *metadata) {
+    RecorderReader reader;
+    recorder_init_reader(traces_dir, &reader);
+    memcpy(metadata, &(reader.metadata), sizeof(RecorderMetadata));
+    recorder_free_reader(&reader);
+}
+
+typedef struct {
+    RecorderReader* reader;
+    VerifyIORecord* records;
+    size_t used;
+    size_t size;
+} verifyio_record_filler;
+
+void insert_verifyio_record(Record* record, void* arg) {
+    verifyio_record_filler* vrf = (verifyio_record_filler*) arg;
+
+    const char* func_name = recorder_get_func_name(vrf->reader, record);
+
+    // filter the functions we need and the arguments we need
+    //if ( func_name ) {
+    //}
+    
+    if (vrf->used == vrf->size) {
+        vrf->size *= 2;
+        vrf->records = realloc(vrf->records, vrf->size * sizeof(VerifyIORecord));
+    }
+
+    vrf->records[vrf->used].func_id = record->func_id,
+    vrf->records[vrf->used].call_depth = record->call_depth,
+    vrf->records[vrf->used].arg_count = record->arg_count,
+    vrf->records[vrf->used].args = record->args,
+    vrf->used++;
+    //printf("insert one %s\n", recorder_get_func_name(vrf->reader, record));
+}
+
+VerifyIORecord** recorder_read_verifyio_records(char* traces_dir, size_t* num_records) {
+
+    RecorderReader reader;
+    recorder_init_reader(traces_dir, &reader);
+
+    VerifyIORecord** records = malloc(sizeof(VerifyIORecord*) * reader.metadata.total_ranks);
+
+    for(int rank = 0; rank < reader.metadata.total_ranks; rank++) {
+
+        CFG* cfg = reader_get_cfg(&reader, rank);
+
+        verifyio_record_filler vrf;
+        vrf.reader = &reader;
+        vrf.used = 0;
+        vrf.size = 1024*1024;
+        vrf.records = malloc(vrf.size * sizeof(VerifyIORecord));
+
+        recorder_decode_records2(&reader, rank, insert_verifyio_record, &vrf);
+
+        records[rank] = vrf.records;
+        num_records[rank] = vrf.used;
+    }
+
+    recorder_free_reader(&reader);
+
+    return records;
+}
+
+void recorder_free_verifyio_records(VerifyIORecord* records) {
+}
+

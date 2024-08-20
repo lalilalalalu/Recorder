@@ -24,14 +24,23 @@ accepted_mpi_funcs = [
  'MPI_Cart_sub'
 ]
 
+import pandas as pd
+
 def read_mpi_nodes(reader):
-    nprocs = reader.GM.total_ranks
-    mpi_nodes = [[] for i in repeat(None, nprocs)]
+
+    mpi_nodes = [[] for i in repeat(None, reader.nprocs)]
+    d = {
+        "rank": [],
+        "seq_id": [],
+        "func": [],
+        "fh": [],
+        "mpifh": [],
+    }
 
     func_list = reader.funcs
-    for rank in range(nprocs):
+    for rank in range(reader.nprocs):
         records = reader.records[rank]
-        for seq_id in range(reader.LMs[rank].total_records):
+        for seq_id in range(reader.num_records[rank]):
             func = func_list[records[seq_id].func_id]
             mpifh = None
             if func in accepted_mpi_funcs:
@@ -40,7 +49,18 @@ def read_mpi_nodes(reader):
                 mpi_node = VerifyIONode(rank, seq_id, func, -1, mpifh)
                 mpi_nodes[rank].append(mpi_node)
 
+                #d["rank"].append(rank)
+                #d["seq_id"].append(seq_id)
+                #d["func"].append(func)
+                #d["fh"].append(-1)
+                #d["mpifh"].append(mpifh)
+
+    #df = pd.DataFrame(d);
+    #return df
+                
     return mpi_nodes
+        
+
 
 '''
 Read confliciing pairs from a file
@@ -63,8 +83,7 @@ def read_io_nodes(reader, path):
     exist_n2s = set()
     duplicate = 0
 
-    nprocs = reader.GM.total_ranks
-    io_nodes = [[] for i in repeat(None, nprocs)]
+    io_nodes = [[] for i in repeat(None, reader.nprocs)]
     pairs = []
 
     f = open(path, "r")
@@ -92,7 +111,7 @@ def read_io_nodes(reader, path):
             io_nodes[n1.rank].append(n1)
             exist_nodes.add(n1_buf)
 
-        n2s = [[] for i in repeat(None, nprocs)]
+        n2s = [[] for i in repeat(None, reader.nprocs)]
         for n2_buf in n2s_buf:
             n2 = parse_one_node(n2_buf, file_id)
             if n2_buf not in exist_nodes:
