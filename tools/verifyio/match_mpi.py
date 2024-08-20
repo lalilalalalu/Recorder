@@ -22,6 +22,26 @@ class MPIEdge():
             self.head = head        # list/instance of VerifyIONode
         if tail:
             self.tail = tail        # list/instance of VerifyIONode
+class MPICall():
+    def __init__(self, rank, seq_id, func, **kwargs):
+        self.rank   = int(rank)
+        self.seq_id = int(seq_id)             # Sequence Id of the mpi call
+        self.func   = str(func)
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.matched = False
+
+    def get_key(self):
+        # self.comm for calls like MPI_Bcast, MPI_Barier
+        # self.req for calls like MPI_File_close
+        key = self.func + ";" + str(self.comm) + ";" + str(self.req)
+        return key
+
+    def is_blocking_call(self):
+        if self.func.startswith("MPI_I"):
+            return False
+        return True
+
 
 class MPICall():
     def __init__(self, rank, seq_id, func, src, dst, stag, rtag, comm, tindx, req=None, reqflag=-1):
@@ -48,6 +68,7 @@ class MPICall():
         if self.func.startswith("MPI_I"):
             return False
         return True
+
 
 class MPIMatchHelper:
     def __init__(self, reader, mpi_sync_calls):
@@ -230,12 +251,79 @@ class MPIMatchHelper:
             return mpi_call
         else:
             return None
+    """
+        def read_one_mpi_call(self, rank, seq_id, record):
+        func = self.recorder_reader.funcs[record.func_id]
+
+        # in python3, record.args are bytes instead of
+        # str in like python2. need to decode them to
+        # str first
+        args = []
+        for i in range(record.arg_count):
+            arg = record.args[i].decode("utf-8", "ignore")
+            args.append(arg)
+
+        func_args_map = {
+            'MPI_Send': ['dst', 'stag', 'comm'],
+            'MPI_Ssend': ['dst', 'stag', 'comm'],
+            'MPI_Isend': ['dst', 'stag', 'comm'],
+            'MPI_Recv': ['src', 'rtag', 'comm'],
+            'MPI_Sendrecv': ['src', 'dst', 'stag', 'rtag', 'comm'],
+            'MPI_Irecv': ['src', 'rtag', 'comm', 'req'],
+            'MPI_Wait': ['req', 'src', 'rtag'],
+            'MPI_Waitall': ['req'],
+            'MPI_Waitany': ['req', 'tindx'],
+            'MPI_Waitsome': ['req', 'reqflag', 'tindx'],
+            'MPI_Test': ['req', 'reqflag', 'src', 'rtag'],
+            'MPI_Testall': ['req', 'reqflag'],
+            'MPI_Testany': ['req', 'reqflag', 'tindx'],
+            'MPI_Testsome': ['req', 'reqflag', 'tindx'],
+            'MPI_Bcast': ['src', 'comm'],
+            'MPI_Ibcast': ['src', 'comm', 'req'],
+            'MPI_Reduce': ['src', 'comm'],
+            'MPI_Ireduce': ['src', 'comm', 'req'],
+            'MPI_Gather': ['src', 'comm'],
+            'MPI_Igather': ['src', 'comm', 'req'],
+            'MPI_Gatherv': ['src', 'comm'],
+            'MPI_Igatherv': ['src', 'comm', 'req'],
+            'MPI_Barrier': ['comm'],
+            'MPI_Alltoall': ['comm'],
+            'MPI_Allreduce': ['comm'],
+            'MPI_Allgatherv': ['comm'],
+            'MPI_Reduce_scatter': ['comm'],
+            'MPI_File_open': ['comm', 'req', 'reqflag'],
+            'MPI_File_close': ['req'],
+            'MPI_File_read_at_all': ['req', 'reqflag'],
+            'MPI_File_write_at_all': ['req', 'reqflag'],
+            'MPI_File_set_size': ['req'],
+            'MPI_File_set_view': ['comm', 'req', 'reqflag'],
+            'MPI_File_sync': ['req'],
+            'MPI_File_read_all': ['req'],
+            'MPI_File_read_ordered': ['req'],
+            'MPI_File_write_all': ['req'],
+            'MPI_File_write_ordered': ['req'],
+            'MPI_Comm_dup': ['comm'],
+            'MPI_Comm_split': ['comm'],
+            'MPI_Comm_split_type': ['comm'],
+            'MPI_Cart_create': ['comm'],
+            'MPI_Cart_sub': ['comm'],
+        }
+
+        # Filter kwargs to only include those needed by the function
+        if func in func_args_map:
+            print(func)
+
+        mpi_call_args = {k: v for k, v in kwargs.items() if k in func_args_map.get(func, [])}
+        mpi_call_args.update({'func': func})
+
+        return MPICall(rank, seq_id, func, **mpi_call_args)
+    """
 
     def mpi_status_to_src_tag(self, status_str):
-        if str(status_str).startswith("["):
-            return status_str[1:-1].split("_")[0], status_str[1:-1].split("_")[1]
-        else:   # MPI_STATUS_IGNORE
-            return 0, 0
+            if str(status_str).startswith("["):
+                return status_str[1:-1].split("_")[0], status_str[1:-1].split("_")[1]
+            else:   # MPI_STATUS_IGNORE
+                return 0, 0
 
     # Go through every record in the trace and preprocess
     # the mpi calls, so they can be matched later.
