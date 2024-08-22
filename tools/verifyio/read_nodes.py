@@ -24,18 +24,9 @@ accepted_mpi_funcs = [
  'MPI_Cart_sub'
 ]
 
-import pandas as pd
-
 def read_mpi_nodes(reader):
 
     mpi_nodes = [[] for i in repeat(None, reader.nprocs)]
-    d = {
-        "rank": [],
-        "seq_id": [],
-        "func": [],
-        "fh": [],
-        "mpifh": [],
-    }
 
     func_list = reader.funcs
     for rank in range(reader.nprocs):
@@ -49,18 +40,8 @@ def read_mpi_nodes(reader):
                 mpi_node = VerifyIONode(rank, seq_id, func, -1, mpifh)
                 mpi_nodes[rank].append(mpi_node)
 
-                #d["rank"].append(rank)
-                #d["seq_id"].append(seq_id)
-                #d["func"].append(func)
-                #d["fh"].append(-1)
-                #d["mpifh"].append(mpifh)
-
-    #df = pd.DataFrame(d);
-    #return df
-                
     return mpi_nodes
         
-
 
 '''
 Read confliciing pairs from a file

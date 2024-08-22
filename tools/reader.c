@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <assert.h>
 #include <zlib.h>
 #include "reader.h"
@@ -319,9 +320,11 @@ int recorder_get_func_type(RecorderReader* reader, Record* record) {
     }
     if(record->func_id < reader->pnetcdf_start_idx)
         return RECORDER_HDF5;
+    if(record->func_id < reader->netcdf_start_idx)
+        return RECORDER_PNETCDF;
     if(record->func_id == RECORDER_USER_FUNCTION)
         return RECORDER_FTRACE;
-    return RECORDER_PNETCDF;
+    return RECORDER_NETCDF;
 }
 
 void recorder_free_record(Record* r) {
@@ -542,25 +545,150 @@ typedef struct {
     size_t size;
 } verifyio_record_filler;
 
+static inline
+void verifyio_record_copy_args(VerifyIORecord* vir, Record* r, int arg_count, ...) {
+    vir->arg_count = arg_count;
+    vir->args = (char**) malloc(sizeof(char*)*vir->arg_count);
+
+    va_list valist;
+    va_start(valist, arg_count);
+    for(int i = 0; i < arg_count; i++) {
+        int arg_idx = va_arg(valist, int);
+        vir->args[i] = strdup(r->args[arg_idx]);
+    }
+    va_end(valist);
+}
+
+/**
+ * Filtering only needed Record for VerifyIO
+ * Also keep setsubt of needed arguments
+ * Here, we copy the arguments as they will be
+ * freed later.
+ * Record* r: [in]
+ * VerifyIORecord* vir: [out]
+ */
+int create_verifyio_record(RecorderReader* reader, Record* r, VerifyIORecord* vir) {
+
+    // return if we will keep the record
+    int included = 1;
+
+    // all records keep func_id and call_depth
+    vir->func_id = r->func_id;
+    vir->call_depth = r->call_depth;
+    vir->arg_count = 0;
+    vir->args = NULL;
+
+    int func_type = recorder_get_func_type(reader, r);
+    const char* func_name = recorder_get_func_name(reader, r);
+
+    if (func_type == RECORDER_HDF5 || func_type == RECORDER_PNETCDF || func_type == RECORDER_NETCDF) {
+        // HDF5, PnetCDF and NetCDF functions need no arguments
+        vir->arg_count = 0;
+        vir->args = NULL;
+    } else if (func_type == RECORDER_MPIIO) {
+        // MPI-IO functions only need MPI_File handle
+        if (strstr(func_name, "MPI_File_open")){
+            verifyio_record_copy_args(vir, r, 1, r->arg_count-1);
+        } else {
+            verifyio_record_copy_args(vir, r, 1, 0);
+        }
+    } else if (func_type == RECORDER_MPI) {
+        if (strcmp(func_name, "MPI_Send") == 0  ||
+            strcmp(func_name, "MPI_SSend") == 0 ||
+            strcmp(func_name, "MPI_Isend") == 0) {
+            // dst, tag, comm
+            verifyio_record_copy_args(vir, r, 3, 3, 4, 5);
+        } else if (strcmp(func_name, "MPI_Recv") == 0 ||
+                   strcmp(func_name, "MPI_Irecv") == 0) {
+            // TODO handle ANY_SOURCE ANY_TAG
+            // src, tag, comm, status/req
+            verifyio_record_copy_args(vir, r, 4, 3, 4, 5, 6);
+        } else if (strcmp(func_name, "MPI_Sendrecv") == 0) {
+            // src, dst, stag, rtag, comm
+            verifyio_record_copy_args(vir, r, 5, 8, 3, 4, 9, 10);
+        } else if (strcmp(func_name, "MPI_Bcast") == 0) {
+            // src, comm
+            verifyio_record_copy_args(vir, r, 2, 3, 4);
+        } else if (strcmp(func_name, "MPI_Ibcast") == 0) {
+            // src, comm, req
+            verifyio_record_copy_args(vir, r, 3, 3, 4, 5);
+        } else if (strcmp(func_name, "MPI_Reduce") == 0) {
+            // src, comm
+            verifyio_record_copy_args(vir, r, 2, 5, 6);
+        } else if (strcmp(func_name, "MPI_Ireduce") == 0) {
+            // src, comm, req
+            verifyio_record_copy_args(vir, r, 3, 5, 6, 7);
+        } else if (strcmp(func_name, "MPI_Gather") == 0) {
+            // src, comm
+            verifyio_record_copy_args(vir, r, 2, 6, 7);
+        } else if (strcmp(func_name, "MPI_Igather") == 0) {
+            // src, comm, req
+            verifyio_record_copy_args(vir, r, 3, 6, 7, 8);
+        } else if (strcmp(func_name, "MPI_Gatherv") == 0) {
+            // src, comm
+            verifyio_record_copy_args(vir, r, 2, 7, 8);
+        } else if (strcmp(func_name, "MPI_Igatherv") == 0) {
+            // src, comm, req
+            verifyio_record_copy_args(vir, r, 3, 7, 8, 9);
+        } else if (strcmp(func_name, "MPI_Barrier") == 0) {
+            // comm
+            verifyio_record_copy_args(vir, r, 1, 0);
+        } else if (strcmp(func_name, "MPI_Alltoall") == 0) {
+            // comm
+            verifyio_record_copy_args(vir, r, 1, 6);
+        } else if (strcmp(func_name, "MPI_Allreduce") == 0 ||
+                   strcmp(func_name, "MPI_Reduce_scatter") == 0) {
+            // comm
+            verifyio_record_copy_args(vir, r, 1, 5);
+        } else if (strcmp(func_name, "MPI_Allgatherv") == 0) {
+            // comm
+            verifyio_record_copy_args(vir, r, 1, 7);
+        } else if (strcmp(func_name, "MPI_Comm_dup") == 0) {
+            // comm, local_rank
+            verifyio_record_copy_args(vir, r, 2, 1, 2);
+        } else if (strcmp(func_name, "MPI_Comm_split") == 0) {
+            // comm, local_rank
+            verifyio_record_copy_args(vir, r, 2, 3, 4);
+        } else if (strcmp(func_name, "MPI_Comm_split_type") == 0) {
+            // comm, local_rank
+            verifyio_record_copy_args(vir, r, 2, 4, 5);
+        } else if (strcmp(func_name, "MPI_Cart_create") == 0) {
+            // comm, local_rank
+            verifyio_record_copy_args(vir, r, 2, 5, 6);
+        } else if ((strcmp(func_name, "MPI_Cart_sub") == 0) || 
+                   (strcmp(func_name, "MPI_Comm_create") == 0)) {
+            // comm, local_rank
+            verifyio_record_copy_args(vir, r, 2, 2, 3);
+        }
+    } else if (func_type == RECORDER_POSIX) {
+        // only keep need *write* *read* POSIX calls
+        if (strstr(func_name, "write") || strstr(func_name, "read")) {
+            vir->arg_count = r->arg_count;
+            vir->args = (char**) malloc(sizeof(char*)*vir->arg_count);
+            for(int i = 0; i < vir->arg_count; i++)
+                vir->args[i] = strdup(r->args[i]);
+        } else {
+            //included = 0;
+        }
+    } else {
+        //included = 0;
+    }
+    return included;
+}
+
 void insert_verifyio_record(Record* record, void* arg) {
+
     verifyio_record_filler* vrf = (verifyio_record_filler*) arg;
 
-    const char* func_name = recorder_get_func_name(vrf->reader, record);
-
-    // filter the functions we need and the arguments we need
-    //if ( func_name ) {
-    //}
-    
     if (vrf->used == vrf->size) {
         vrf->size *= 2;
         vrf->records = realloc(vrf->records, vrf->size * sizeof(VerifyIORecord));
     }
 
-    vrf->records[vrf->used].func_id = record->func_id,
-    vrf->records[vrf->used].call_depth = record->call_depth,
-    vrf->records[vrf->used].arg_count = record->arg_count,
-    vrf->records[vrf->used].args = record->args,
-    vrf->used++;
+    int included = create_verifyio_record(vrf->reader, record, &(vrf->records[vrf->used]));
+
+    if (included)
+        vrf->used++;
     //printf("insert one %s\n", recorder_get_func_name(vrf->reader, record));
 }
 
@@ -581,7 +709,7 @@ VerifyIORecord** recorder_read_verifyio_records(char* traces_dir, size_t* num_re
         vrf.size = 1024*1024;
         vrf.records = malloc(vrf.size * sizeof(VerifyIORecord));
 
-        recorder_decode_records2(&reader, rank, insert_verifyio_record, &vrf);
+        recorder_decode_records(&reader, rank, insert_verifyio_record, &vrf);
 
         records[rank] = vrf.records;
         num_records[rank] = vrf.used;

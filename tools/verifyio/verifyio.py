@@ -246,18 +246,14 @@ if __name__ == "__main__":
     parser.add_argument("--show_summary", action="store_true", help="Show summary of the conflicts")
     args = parser.parse_args()
 
-    import resource
     import psutil
-    print(resource.getrusage(resource.RUSAGE_SELF))
     print('1. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
     t1 = time.time()
     reader = RecorderReader(args.traces_folder)
-    print(resource.getrusage(resource.RUSAGE_SELF))
     print('2. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
     mpi_nodes = read_mpi_nodes(reader)
-    print(resource.getrusage(resource.RUSAGE_SELF))
     print('3. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
     io_nodes, conflict_pairs = read_io_nodes(reader, args.traces_folder+"/conflicts.txt")
@@ -284,8 +280,7 @@ if __name__ == "__main__":
     print("build happens-before graph: %.3f secs, nodes: %d" %((t2-t1), G.num_nodes()))
     print('7. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
-    # Correct code (traces) should result in 
-    # a DAG without any cycles
+    # Correct code (traces) should generate a DAG without any cycles
     if G.check_cycles(): quit()
 
     G.run_vector_clock()

@@ -1,6 +1,8 @@
 import sys
 from itertools import repeat
 from verifyio_graph import VerifyIONode, MPICallType
+import read_nodes
+
 
 ANY_SOURCE = -2
 ANY_TAG = -1
@@ -22,52 +24,29 @@ class MPIEdge:
             self.head = head        # list/instance of VerifyIONode
         if tail:
             self.tail = tail        # list/instance of VerifyIONode
+
 class MPICall:
     def __init__(self, rank, seq_id, func, **kwargs):
-        self.rank   = int(rank)
-        self.seq_id = int(seq_id)             # Sequence Id of the mpi call
-        self.func   = str(func)
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+        self.rank    = int(rank)
+        self.seq_id  = int(seq_id)             # Sequence Id of the mpi call
+        self.func    = str(func)
         self.matched = False
+        for k, v in kwargs.items():
+            val = v
+            if k in ["src", "dst", "stag", "rtag"]:
+                val = int(v)
+            setattr(self, k, val)
 
     def get_key(self):
         # self.comm for calls like MPI_Bcast, MPI_Barier
-        # self.req for calls like MPI_File_close
-        key = self.func + ";" + str(getattr(self, 'comm', None)) + ";" + str(getattr(self, 'req', None))
+        # self.mpifh for calls like MPI_File_close
+        key = self.func + ";" + str(getattr(self, 'comm', '')) + ";" + str(getattr(self, 'mpifh', ''))
         return key
 
     def is_blocking_call(self):
         if self.func.startswith("MPI_I"):
             return False
         return True
-
-
-# class MPICall():
-#     def __init__(self, rank, seq_id, func, src, dst, stag, rtag, comm, tindx, req=None, reqflag=-1):
-#         self.rank   = int(rank)
-#         self.seq_id = int(seq_id)             # Sequence Id of the mpi call
-#         self.func   = str(func)
-#         self.src    = int(src) if src else None # root of reduce/bcast call
-#         self.dst    = int(dst) if dst else None
-#         self.stag   = int(stag) if stag else None
-#         self.rtag   = int(rtag) if rtag else None
-#         self.comm   = comm
-#         self.req    = req                      # MPI_Requests for wait/test calls or MPI_File handle for I/O calls
-#         self.reqflag = reqflag
-#         self.tindx   = tindx
-#         self.matched = False
-#
-#     def get_key(self):
-#         # self.comm for calls like MPI_Bcast, MPI_Barier
-#         # self.req for calls like MPI_File_close
-#         key = self.func + ";" + str(self.comm) + ";" + str(self.req)
-#         return key
-#
-#     def is_blocking_call(self):
-#         if self.func.startswith("MPI_I"):
-#             return False
-#         return True
 
 
 class MPIMatchHelper:
@@ -112,7 +91,8 @@ class MPIMatchHelper:
         return False
 
     def is_coll_call(self, func_name):
-        if func_name in self.alltoall_func_names or func_name in self.bcast_func_names or func_name in self.redgat_func_names:
+        if func_name in self.alltoall_func_names or func_name in self.bcast_func_names \
+                or func_name in self.redgat_func_names:
             return True
         return False
 
@@ -128,203 +108,63 @@ class MPIMatchHelper:
         return MPICallType.OTHER
 
     def read_one_mpi_call(self, rank, seq_id, record):
-
         func = self.recorder_reader.funcs[record.func_id]
-
-        # in python3, record.args are bytes instead of
-        # str in like python2. need to decode them to
-        # str first
         args = []
         for i in range(record.arg_count):
             arg = record.args[i].decode("utf-8", "ignore")
             args.append(arg)
-
-        src, dst, stag, rtag = None, None, None, None
-        comm, req, reqflag, tindx = None, None, 1, None
-        ## Point-to-Point calls
-        if func == 'MPI_Send' or func == 'MPI_Ssend' or func == 'MPI_Isend':
-            skip, dst, stag, comm = False, args[3], args[4], args[5]
-        elif func == 'MPI_Recv':
-            skip, src, rtag, comm = False, args[3],args[4], args[5]
-            # get the actual source from MPI_Status
-            if int(src) == ANY_SOURCE:
-                src = args[6][1:-1].split('_')[0]
-            if int(rtag) == ANY_TAG:
-                rtag = args[6][1:-1].split('_')[1]
-        elif func == 'MPI_Sendrecv':
-            skip, src, dst, stag, rtag, comm = False, args[8], args[3], args[4], args[9], args[10]
-        elif func == 'MPI_Irecv':
-            skip, src, rtag, comm, req = False, args[3], args[4], args[5], args[6]
-        elif func == 'MPI_Wait':
-            skip, req = False, set([args[0]])
-            src, rtag = self.mpi_status_to_src_tag(args[1])
-        elif func == 'MPI_Waitall':
-            reqs = args[1][1:-1].split(',')
-            skip, req = False, set(reqs)
-        elif func == 'MPI_Waitany':
-            reqs = args[1][1:-1].split(',')
-            skip, req, tindx = False, reqs, [args[2]]
-        elif func == 'MPI_Waitsome':
-            reqs = args[1][1:-1].split(',')
-            tind = args[3][1:-1].split(',')
-            skip, req, reqflag, tindx = False, reqs, int(args[2]), tind
-        elif func == 'MPI_Test':
-            skip, req, reqflag = False, set([args[0]]), int(args[1])
-            src, rtag = self.mpi_status_to_src_tag(args[2])
-        elif func == 'MPI_Testall':
-            reqs = args[1][1:-1].split(',')
-            skip, req, reqflag = False, set(reqs), int(args[2])
-        elif func == 'MPI_Testany':
-            reqs = args[1][1:-1].split(',')
-            skip, req, reqflag, tindx = False, reqs, int(args[3]), [args[2]]
-        elif func == 'MPI_Testsome':
-            reqs = args[1][1:-1].split(',')
-            tind = args[3][1:-1].split(',')
-            skip, req, reqflag, tindx  = False, reqs, int(args[2]), tind
-        ## Collective calls
-        # for one-tomany and many-to-one calls like
-        # reduce and gather we use src to store root parameters
-        elif func == 'MPI_Bcast':
-            skip, src, comm = False, args[3], args[4]
-        elif func == 'MPI_Ibcast':
-            skip, src, comm, req = False, args[3], args[4], args[5]
-        elif func == 'MPI_Reduce':
-            skip, src, comm = False, args[5], args[6]
-        elif func == 'MPI_Ireduce':
-            skip, src, comm, req = False, args[5], args[6], args[7]
-        elif func == 'MPI_Gather':
-            skip, src, comm = False, args[6], args[7]
-        elif func == 'MPI_Igather':
-            skip, src, comm, req = False, args[6], args[7], args[8]
-        elif func == 'MPI_Gatherv':
-            skip, src, comm = False, args[7], args[8]
-        elif func == 'MPI_Igatherv':
-            skip, src, comm, req = False, args[7], args[8], args[9]
-        elif func == 'MPI_Barrier':
-            skip, comm = False, args[0]
-        elif func == 'MPI_Alltoall':
-            skip, comm = False, args[6]
-        elif func == 'MPI_Allreduce':
-            skip, comm = False, args[5]
-        elif func == 'MPI_Allgatherv':
-            skip, comm = False, args[7]
-        elif func == 'MPI_Reduce_scatter':
-            skip, comm = False, args[5]
-        elif func == 'MPI_File_open':
-            skip, comm, req, reqflag = False, args[0], args[4], args[2]
-        elif func == 'MPI_File_close':
-            skip, req = False, args[0]
-        elif func == 'MPI_File_read_at_all':
-            skip, req, reqflag = False, args[0], args[1]
-        elif func == 'MPI_File_write_at_all':
-            skip, req, reqflag = False, args[0], args[1]
-        elif func == 'MPI_File_set_size':
-            skip, req = False, args[0]
-        elif func == 'MPI_File_set_view':
-            skip, comm, req, reqflag = False, args[0], args[2], args[4]     # MPI_File fh usually stored in "req" variable but if more arguments need to be matched, can be stored in "comm" variable
-        elif func == 'MPI_File_sync':
-            skip, req = False, args[0]
-        elif func == 'MPI_File_read_all':
-            skip, req = False, args[0]
-        elif func == 'MPI_File_read_ordered':
-            skip, req = False, args[0]
-        elif func == 'MPI_File_write_all':
-            skip, req = False, args[0]
-        elif func == 'MPI_File_write_ordered':
-            skip, req = False, args[0]
-        elif func == 'MPI_Comm_dup':
-            skip, comm = False, args[1]
-        elif func == 'MPI_Comm_split':
-            skip, comm = False, args[3]
-        elif func == 'MPI_Comm_split_type':
-            skip, comm = False, args[4]
-        elif func == 'MPI_Cart_create':
-            skip, comm = False, args[5]
-        elif func == 'MPI_Cart_sub':
-            skip, comm = False, args[2]
+        func_args_map = {
+            'MPI_Send':     ['dst', 'stag', 'comm'],
+            'MPI_Ssend':    ['dst', 'stag', 'comm'],
+            'MPI_Isend':    ['dst', 'stag', 'comm'],
+            'MPI_Recv':     ['src', 'rtag', 'comm'],
+            'MPI_Sendrecv': ['src', 'dst', 'stag', 'rtag', 'comm'],
+            'MPI_Irecv':    ['src', 'rtag', 'comm', 'req'],
+            'MPI_Wait':     ['req', 'src', 'rtag'],
+            'MPI_Waitall':  ['req'],
+            'MPI_Waitany':  ['req', 'tindx'],
+            'MPI_Waitsome': ['req', 'reqflag', 'tindx'],
+            'MPI_Test':     ['req', 'reqflag', 'src', 'rtag'],
+            'MPI_Testall':  ['req', 'reqflag'],
+            'MPI_Testany':  ['req', 'reqflag', 'tindx'],
+            'MPI_Testsome': ['req', 'reqflag', 'tindx'],
+            'MPI_Bcast':    ['src', 'comm'],
+            'MPI_Ibcast':   ['src', 'comm', 'req'],
+            'MPI_Reduce':   ['src', 'comm'],
+            'MPI_Ireduce':  ['src', 'comm', 'req'],
+            'MPI_Gather':   ['src', 'comm'],
+            'MPI_Igather':  ['src', 'comm', 'req'],
+            'MPI_Gatherv':  ['src', 'comm'],
+            'MPI_Igatherv': ['src', 'comm', 'req'],
+            'MPI_Barrier':          ['comm'],
+            'MPI_Alltoall':         ['comm'],
+            'MPI_Allreduce':        ['comm'],
+            'MPI_Allgatherv':       ['comm'],
+            'MPI_Reduce_scatter':   ['comm'],
+            'MPI_Comm_dup':         ['comm'],
+            'MPI_Comm_split':       ['comm'],
+            'MPI_Comm_split_type':  ['comm'],
+            'MPI_Cart_create':      ['comm'],
+            'MPI_Cart_sub':         ['comm'],
+            'MPI_File_open':        ['mpifh'],
+            'MPI_File_close':       ['mipfh'],
+            'MPI_File_read_at_all': ['mpifh'],
+            'MPI_File_write_at_all':['mpifh'],
+            'MPI_File_set_size':    ['mpifh'],
+            'MPI_File_set_view':    ['mpifh'],
+            'MPI_File_sync':        ['mpifh'],
+            'MPI_File_read_all':    ['mpifh'],
+            'MPI_File_read_ordered':['mpifh'],
+            'MPI_File_write_all':   ['mpifh'],
+            'MPI_File_write_ordered':['mpifh'],
+        }
+        if func in func_args_map:
+            arg_names = func_args_map[func]
+            mapped_args = dict(zip(arg_names, args))
+            return MPICall(rank, seq_id, func, **mapped_args)
         else:
-            pass
-
-        # MPI_Test calls with a false reqflag is no use for matching and ordering.
-        if reqflag:
-            kwargs = {
-                'src': src,
-                'dst': dst,
-                'stag': stag,
-                'rtag': rtag,
-                'comm': comm,
-                'tindx': tindx,
-                'req': req,
-                'reqflag': reqflag
-            }
-
-            #mpi_call = MPICall(rank, seq_id, func, src, dst, stag, rtag, comm, tindx, req, reqflag)
-            mpi_call = MPICall(rank, seq_id, func, **kwargs)
-            return mpi_call
-        else:
-            return None
-
-    # def read_one_mpi_call(self, rank, seq_id, record):
-        # func = self.recorder_reader.funcs[record.func_id]
-        # args = []
-        # for i in range(record.arg_count):
-        #     arg = record.args[i].decode("utf-8", "ignore")
-        #     args.append(arg)
-        # func_args_map = {
-        #     'MPI_Send': ['dst', 'stag', 'comm'],
-        #     'MPI_Ssend': ['dst', 'stag', 'comm'],
-        #     'MPI_Isend': ['dst', 'stag', 'comm'],
-        #     'MPI_Recv': ['src', 'rtag', 'comm'],
-        #     'MPI_Sendrecv': ['src', 'dst', 'stag', 'rtag', 'comm'],
-        #     'MPI_Irecv': ['src', 'rtag', 'comm', 'req'],
-        #     'MPI_Wait': ['req', 'src', 'rtag'],
-        #     'MPI_Waitall': ['req'],
-        #     'MPI_Waitany': ['req', 'tindx'],
-        #     'MPI_Waitsome': ['req', 'reqflag', 'tindx'],
-        #     'MPI_Test': ['req', 'reqflag', 'src', 'rtag'],
-        #     'MPI_Testall': ['req', 'reqflag'],
-        #     'MPI_Testany': ['req', 'reqflag', 'tindx'],
-        #     'MPI_Testsome': ['req', 'reqflag', 'tindx'],
-        #     'MPI_Bcast': ['src', 'comm'],
-        #     'MPI_Ibcast': ['src', 'comm', 'req'],
-        #     'MPI_Reduce': ['src', 'comm'],
-        #     'MPI_Ireduce': ['src', 'comm', 'req'],
-        #     'MPI_Gather': ['src', 'comm'],
-        #     'MPI_Igather': ['src', 'comm', 'req'],
-        #     'MPI_Gatherv': ['src', 'comm'],
-        #     'MPI_Igatherv': ['src', 'comm', 'req'],
-        #     'MPI_Barrier': ['comm'],
-        #     'MPI_Alltoall': ['comm'],
-        #     'MPI_Allreduce': ['comm'],
-        #     'MPI_Allgatherv': ['comm'],
-        #     'MPI_Reduce_scatter': ['comm'],
-        #     'MPI_File_open': ['comm', 'req', 'reqflag'],
-        #     'MPI_File_close': ['req'],
-        #     'MPI_File_read_at_all': ['req', 'reqflag'],
-        #     'MPI_File_write_at_all': ['req', 'reqflag'],
-        #     'MPI_File_set_size': ['req'],
-        #     'MPI_File_set_view': ['comm', 'req', 'reqflag'],
-        #     'MPI_File_sync': ['req'],
-        #     'MPI_File_read_all': ['req'],
-        #     'MPI_File_read_ordered': ['req'],
-        #     'MPI_File_write_all': ['req'],
-        #     'MPI_File_write_ordered': ['req'],
-        #     'MPI_Comm_dup': ['comm'],
-        #     'MPI_Comm_split': ['comm'],
-        #     'MPI_Comm_split_type': ['comm'],
-        #     'MPI_Cart_create': ['comm'],
-        #     'MPI_Cart_sub': ['comm'],
-        # }
-        # if func in func_args_map:
-        #     arg_names = func_args_map[func]
-        #     mapped_args = dict(zip(arg_names, args))
-        #     if mapped_args['reqflag']== 0:
-        #         return None
-        #     else:
-        #         return MPICall(rank, seq_id, func, **mapped_args)
-        # else:
-        #     print(f"{func} not found in func_args_map")
-        #     return MPICall(rank, seq_id, func)
+            print(f"{func} not found in func_args_map")
+            return MPICall(rank, seq_id, func)
 
     def mpi_status_to_src_tag(self, status_str):
             if str(status_str).startswith("["):
@@ -341,10 +181,12 @@ class MPIMatchHelper:
             for seq_id in range(reader.num_records[rank]):
 
                 func_name = reader.funcs[records[seq_id].func_id]
+                if func_name not in read_nodes.accepted_mpi_funcs: continue
+
                 mpi_call = self.read_one_mpi_call(rank, seq_id, records[seq_id])
 
-                # Not an MPI call or an MPI call that we
-                # don't need for sync/ordering
+                # Not an MPI call or an MPI call that we don't need for 
+                # sync/ordering (.e.g., MPI_File_write_at)
                 if not mpi_call:
                     ignored_funcs.add(func_name)
                     continue
@@ -366,7 +208,7 @@ class MPIMatchHelper:
                 if self.is_send_call(func_name):
                     self.send_calls[rank] += 1
                 if self.is_recv_call(func_name):
-                    global_src = self.local2global(mpi_call.comm, int(mpi_call.src))
+                    global_src = self.local2global(mpi_call.comm, mpi_call.src)
                     self.recv_calls[rank][global_src].append(index)
                 if func_name.startswith("MPI_Wait") or func_name.startswith("MPI_Test"):
                     self.wait_test_calls[rank].append(index)
@@ -387,26 +229,13 @@ class MPIMatchHelper:
 
                 comm_id, local_rank, world_rank = None, rank, rank
 
-                if func == 'MPI_Comm_split':
-                    comm_id = record.args[3]
-                    local_rank = int(record.args[4])
-                if func == 'MPI_Comm_split_type':
-                    comm_id = record.args[4]
-                    local_rank = int(record.args[5])
-                if func == 'MPI_Comm_dup':
-                    comm_id = record.args[1]
-                    local_rank = int(record.args[2])
-                if func == 'MPI_Cart_create':
-                    comm_id = record.args[5]
-                    local_rank = int(record.args[6])
-                if func == 'MPI_Comm_create':
-                    comm_id = record.args[2]
-                    local_rank = int(record.args[3])
-                if func == 'MPI_Cart_sub':
-                    comm_id = record.args[2]
-                    local_rank = int(record.args[3])
+                if func in ['MPI_Comm_split', 'MPI_Comm_split_type', 'MPI_Comm_dup', \
+                            'MPI_Cart_create' 'MPI_Comm_create', 'MPI_Cart_sub']:
+                    comm_id = record.args[0]
+                    local_rank = int(record.args[1])
 
                 if comm_id:
+                    #print(func, comm_id, local_rank, world_rank)
                     comm = comm_id.decode() if isinstance(comm_id, bytes) else comm_id
                     if comm not in translate:
                         translate[comm] = list(range(self.num_ranks))
@@ -531,7 +360,6 @@ def match_collective(mpi_call, helper):
     #print("match collective:", mpi_call.func, "root:", mpi_call.src, mpi_call.comm, mpi_call.req, mpi_call.reqflag)
     return edge
 
-#@profile
 def match_pt2pt(send_call, helper):
 
     head_node = VerifyIONode(send_call.rank, send_call.seq_id, send_call.func)
@@ -573,7 +401,7 @@ def match_pt2pt(send_call, helper):
         #print("match pt2pt: %s --> %s" %(edge.head, edge.tail))
         return edge
     else:
-        #print("Warnning: unmatched send call:", head_node, global_dst, send_call.stag)
+        print("Warnning: unmatched send call:", head_node, global_dst, send_call.stag)
         return None
 
 
@@ -582,7 +410,6 @@ mpi_sync_calls=True will include only the calls
 that guarantee synchronization, this flag is used
 for checking MPI semantics
 '''
-#@profile
 def match_mpi_calls(reader, mpi_sync_calls=False):
     edges = []
     helper = MPIMatchHelper(reader, mpi_sync_calls)
