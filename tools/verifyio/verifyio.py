@@ -108,7 +108,7 @@ def verify_session_semantics(G, conflict_pairs,
         return inorder
 
     properly_synchronized = True
-    total = len(conflict_pairs)
+    # total = len(conflict_pairs)
     i = 0
     summary = {
         'c_ranks_cnt': [[0 for _ in range(reader.nprocs)] for _ in range(reader.nprocs)],
@@ -147,9 +147,8 @@ def verify_session_semantics(G, conflict_pairs,
 
     if args.show_summary:
         print_summary(summary)
-    else:
-        print("Total conflicts: %d" %i)
-        print("Total conflict pairs: %d" %total_conflicts)
+    print("Total semantic violations: %d" %i)
+    print("Total conflict pairs: %d" %total_conflicts)
     return properly_synchronized
 
 def verify_mpi_semantics(G, conflict_pairs,  reader=None):
@@ -199,11 +198,8 @@ def build_call_chain_str(call_chain, reader):
 
 def print_summary(summary):
     print("=" * 80)
-    print("Summary".center(80))
+    print("Details".center(80))
     print("=" * 80)
-
-    total_conflicts = sum([sum(values) for values in zip(*summary['c_ranks_cnt'])])
-    print(f"{'Total Conflicts:':<30} {total_conflicts}\n")
 
     print(f"{'Rank':<10} {'Conflicts':<20}")
     print("-" * 30)
