@@ -140,7 +140,7 @@ class MPIMatchHelper:
             'MPI_Cart_create':      ['comm'],
             'MPI_Cart_sub':         ['comm'],
             'MPI_File_open':        ['mpifh'],
-            'MPI_File_close':       ['mipfh'],
+            'MPI_File_close':       ['mpifh'],
             'MPI_File_read_at_all': ['mpifh'],
             'MPI_File_write_at_all':['mpifh'],
             'MPI_File_set_size':    ['mpifh'],
@@ -173,7 +173,6 @@ class MPIMatchHelper:
     # Go through every record in the trace and preprocess
     # the mpi calls, so they can be matched later.
     def read_mpi_calls(self, reader):
-        ignored_funcs = set()
         for rank in range(self.num_ranks):
             records = reader.records[rank]
             for seq_id in range(reader.num_records[rank]):
@@ -182,12 +181,6 @@ class MPIMatchHelper:
                 if func_name not in read_nodes.accepted_mpi_funcs: continue
 
                 mpi_call = self.read_one_mpi_call(rank, seq_id, records[seq_id])
-
-                # Not an MPI call or an MPI call that we don't need for 
-                # sync/ordering (.e.g., MPI_File_write_at)
-                if not mpi_call:
-                    ignored_funcs.add(func_name)
-                    continue
 
                 self.all_mpi_calls[rank].append(mpi_call)
 
@@ -211,7 +204,6 @@ class MPIMatchHelper:
                 if func_name.startswith("MPI_Wait") or func_name.startswith("MPI_Test"):
                     self.wait_test_calls[rank].append(index)
 
-        print("Ignored funcs: %s" %ignored_funcs)
 
     def __generate_translation_table(self):
         func_list = self.recorder_reader.funcs
@@ -294,6 +286,8 @@ def match_collective(mpi_call, helper):
 
     def add_nodes_to_edge(edge, call):
         node = VerifyIONode(call.rank, call.seq_id, call.func)
+        if "MPI_File" in call.func: node.mpifh = call.mpifh
+
         # All-to-all (alltoall, barrier, etc.)
         if edge.call_type == MPICallType.ALL_TO_ALL:
             edge.head.append(node)
@@ -349,7 +343,6 @@ def match_collective(mpi_call, helper):
         coll_call.matched = True
 
     mpi_call.matched = True
-    #print("match collective:", mpi_call.func, "root:", mpi_call.src, mpi_call.comm, mpi_call.req, mpi_call.reqflag)
     return edge
 
 def match_pt2pt(send_call, helper):
@@ -433,5 +426,15 @@ def match_mpi_calls(reader, mpi_sync_calls=False):
         # not be set to matched and removed from the list
         #if len(helper.wait_test_calls[rank]) != 0:
         #    print("Rank %d has %d unmatched wait/test" %(rank, len(helper.wait_test_calls[rank])))
+
+    for i in range(len(edges)):
+        edge = edges[i]
+        print("Head nodes of edge: ", i)
+        if isinstance(edge.head, list):
+            for n in edge.head:
+                print("\t", n)
+        else:
+            print("\t", edge.head)
+        print("")
 
     return edges
