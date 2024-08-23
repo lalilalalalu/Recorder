@@ -426,15 +426,14 @@ def match_mpi_calls(reader, mpi_sync_calls=False):
         # not be set to matched and removed from the list
         #if len(helper.wait_test_calls[rank]) != 0:
         #    print("Rank %d has %d unmatched wait/test" %(rank, len(helper.wait_test_calls[rank])))
-
-    for i in range(len(edges)):
-        edge = edges[i]
-        print("Head nodes of edge: ", i)
-        if isinstance(edge.head, list):
-            for n in edge.head:
-                print("\t", n)
-        else:
-            print("\t", edge.head)
-        print("")
+    # for i in range(len(edges)):
+    #     edge = edges[i]
+    #     print("Head nodes of edge: ", i)
+    #     if isinstance(edge.head, list):
+    #         for n in edge.head:
+    #             print("\t", n)
+    #     else:
+    #         print("\t", edge.head)
+    #     print("")
 
     return edges
