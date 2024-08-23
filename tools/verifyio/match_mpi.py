@@ -4,9 +4,6 @@ from verifyio_graph import VerifyIONode, MPICallType
 import read_nodes
 
 
-ANY_SOURCE = -2
-ANY_TAG = -1
-
 class MPIEdge:
     def __init__(self, call_type, head=None, tail=None):
         # Init head/tail according the cal type
@@ -109,10 +106,6 @@ class MPIMatchHelper:
 
     def read_one_mpi_call(self, rank, seq_id, record):
         func = self.recorder_reader.funcs[record.func_id]
-        args = []
-        for i in range(record.arg_count):
-            arg = record.args[i].decode("utf-8", "ignore")
-            args.append(arg)
         func_args_map = {
             'MPI_Send':     ['dst', 'stag', 'comm'],
             'MPI_Ssend':    ['dst', 'stag', 'comm'],
@@ -159,6 +152,11 @@ class MPIMatchHelper:
             'MPI_File_write_ordered':['mpifh'],
         }
         if func in func_args_map:
+            #args = []
+            #for i in range(record.arg_count):
+            #    arg = record.args[i].decode("utf-8", "ignore")
+            #    args.append(arg)
+            args = [record.args[i].decode("utf-8","ignore") for i in range(record.arg_count)]
             arg_names = func_args_map[func]
             mapped_args = dict(zip(arg_names, args))
             return MPICall(rank, seq_id, func, **mapped_args)
@@ -227,28 +225,22 @@ class MPIMatchHelper:
                 record = records[i]
                 func = func_list[record.func_id]
 
-                comm_id, local_rank, world_rank = None, rank, rank
+                comm, local_rank, world_rank = None, rank, rank
 
                 if func in ['MPI_Comm_split', 'MPI_Comm_split_type', 'MPI_Comm_dup', \
                             'MPI_Cart_create' 'MPI_Comm_create', 'MPI_Cart_sub']:
-                    comm_id = record.args[0]
+                    comm = record.args[0].decode("utf-8", "ignore")
                     local_rank = int(record.args[1])
 
-                if comm_id:
-                    #print(func, comm_id, local_rank, world_rank)
-                    comm = comm_id.decode() if isinstance(comm_id, bytes) else comm_id
+                if comm:
                     if comm not in translate:
                         translate[comm] = list(range(self.num_ranks))
                     translate[comm][local_rank] = world_rank
         return translate
 
-    # Local rank to global rank
-    def local2global(self, comm_id, local_rank):
-        comm = comm_id.decode() if isinstance(comm_id, bytes) else comm_id
-        if local_rank >= 0:
-            return self.translate_table[comm][local_rank]
-        # ANY_SOURCE
-        return local_rank
+    # Communicator local rank to global rank
+    def local2global(self, comm, local_rank):
+        return self.translate_table[comm][local_rank]
 
 
 def find_wait_test_call(req, rank, helper, need_match_src_tag=False, src=0, tag=0):

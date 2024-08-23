@@ -33,6 +33,8 @@
 #define RECORDER_USER_FUNCTION  255
 
 
+#define RECORDER_MPI_ANY_SOURCE -1
+#define RECORDER_MPI_ANY_TAG    -2
 
 /* For each function call in the trace file */
 typedef struct Record_t {
