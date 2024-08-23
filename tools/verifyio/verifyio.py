@@ -275,9 +275,11 @@ if __name__ == "__main__":
     t1 = time.time()
     mpi_edges = match_mpi_calls(reader)
     t2 = time.time()
+    for e in mpi_edges:
+        print(e)
     print('6. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
     print("match mpi calls: %.3f secs, mpi edges: %d" %((t2-t1),len(mpi_edges)))
-
+    """
     t1 = time.time()
     G = VerifyIOGraph(all_nodes, mpi_edges, include_vc=True)
     t2 = time.time()
@@ -314,3 +316,4 @@ if __name__ == "__main__":
     else:
         print("\nNot properly synchronized under %s semantics" %args.semantics)
     print("verify time: %.3f secs" %(t2-t1))
+    """

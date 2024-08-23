@@ -22,52 +22,41 @@ class MPIEdge:
             self.head = head        # list/instance of VerifyIONode
         if tail:
             self.tail = tail        # list/instance of VerifyIONode
-class MPICall:
-    def __init__(self, rank, seq_id, func, **kwargs):
+
+    def __str__(self):
+        head_str=""
+        for h in self.head:
+            head_str += str(h) + " "
+        tail_str=""
+        for t in self.tail:
+            tail_str += str(t) + " "
+        return f"MPIEdge: {self.call_type}, {head_str}, {tail_str}"
+
+class MPICall():
+    def __init__(self, rank, seq_id, func, src, dst, stag, rtag, comm, tindx, req=None, reqflag=-1):
         self.rank   = int(rank)
         self.seq_id = int(seq_id)             # Sequence Id of the mpi call
         self.func   = str(func)
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+        self.src    = int(src) if src else None # root of reduce/bcast call
+        self.dst    = int(dst) if dst else None
+        self.stag   = int(stag) if stag else None
+        self.rtag   = int(rtag) if rtag else None
+        self.comm   = comm
+        self.req    = req                      # MPI_Requests for wait/test calls or MPI_File handle for I/O calls
+        self.reqflag = reqflag
+        self.tindx   = tindx
         self.matched = False
 
     def get_key(self):
         # self.comm for calls like MPI_Bcast, MPI_Barier
         # self.req for calls like MPI_File_close
-        key = self.func + ";" + str(getattr(self, 'comm', None)) + ";" + str(getattr(self, 'req', None))
+        key = self.func + ";" + str(self.comm) + ";" + str(self.req)
         return key
 
     def is_blocking_call(self):
         if self.func.startswith("MPI_I"):
             return False
         return True
-
-
-# class MPICall():
-#     def __init__(self, rank, seq_id, func, src, dst, stag, rtag, comm, tindx, req=None, reqflag=-1):
-#         self.rank   = int(rank)
-#         self.seq_id = int(seq_id)             # Sequence Id of the mpi call
-#         self.func   = str(func)
-#         self.src    = int(src) if src else None # root of reduce/bcast call
-#         self.dst    = int(dst) if dst else None
-#         self.stag   = int(stag) if stag else None
-#         self.rtag   = int(rtag) if rtag else None
-#         self.comm   = comm
-#         self.req    = req                      # MPI_Requests for wait/test calls or MPI_File handle for I/O calls
-#         self.reqflag = reqflag
-#         self.tindx   = tindx
-#         self.matched = False
-#
-#     def get_key(self):
-#         # self.comm for calls like MPI_Bcast, MPI_Barier
-#         # self.req for calls like MPI_File_close
-#         key = self.func + ";" + str(self.comm) + ";" + str(self.req)
-#         return key
-#
-#     def is_blocking_call(self):
-#         if self.func.startswith("MPI_I"):
-#             return False
-#         return True
 
 
 class MPIMatchHelper:
@@ -244,22 +233,9 @@ class MPIMatchHelper:
             skip, comm = False, args[2]
         else:
             pass
-
         # MPI_Test calls with a false reqflag is no use for matching and ordering.
         if reqflag:
-            kwargs = {
-                'src': src,
-                'dst': dst,
-                'stag': stag,
-                'rtag': rtag,
-                'comm': comm,
-                'tindx': tindx,
-                'req': req,
-                'reqflag': reqflag
-            }
-
-            #mpi_call = MPICall(rank, seq_id, func, src, dst, stag, rtag, comm, tindx, req, reqflag)
-            mpi_call = MPICall(rank, seq_id, func, **kwargs)
+            mpi_call = MPICall(rank, seq_id, func, src, dst, stag, rtag, comm, tindx, req, reqflag)
             return mpi_call
         else:
             return None
