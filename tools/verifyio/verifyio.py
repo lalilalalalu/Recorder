@@ -375,8 +375,8 @@ if __name__ == "__main__":
     if args.semantics == "POSIX":
         p = verify_posix_semantics(G, conflict_pairs)
     elif args.semantics == "MPI-IO":
-        #p = verify_mpi_semantics(G, conflict_pairs, reader)
-        p = verify_mpi_semantics2(conflict_pairs, reader, all_nodes=all_nodes, mpi_edges=mpi_edges)
+        p = verify_mpi_semantics(G, conflict_pairs, reader)
+        # p = verify_mpi_semantics2(conflict_pairs, reader, all_nodes=all_nodes, mpi_edges=mpi_edges)
     elif args.semantics == "Commit":
         p = verify_commit_semantics(G, conflict_pairs)
     elif args.semantics == "Session":
