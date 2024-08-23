@@ -4,9 +4,6 @@ from verifyio_graph import VerifyIONode, MPICallType
 import read_nodes
 
 
-ANY_SOURCE = -2
-ANY_TAG = -1
-
 class MPIEdge:
     def __init__(self, call_type, head=None, tail=None):
         # Init head/tail according the cal type
@@ -109,10 +106,6 @@ class MPIMatchHelper:
 
     def read_one_mpi_call(self, rank, seq_id, record):
         func = self.recorder_reader.funcs[record.func_id]
-        args = []
-        for i in range(record.arg_count):
-            arg = record.args[i].decode("utf-8", "ignore")
-            args.append(arg)
         func_args_map = {
             'MPI_Send':     ['dst', 'stag', 'comm'],
             'MPI_Ssend':    ['dst', 'stag', 'comm'],
@@ -147,7 +140,7 @@ class MPIMatchHelper:
             'MPI_Cart_create':      ['comm'],
             'MPI_Cart_sub':         ['comm'],
             'MPI_File_open':        ['mpifh'],
-            'MPI_File_close':       ['mipfh'],
+            'MPI_File_close':       ['mpifh'],
             'MPI_File_read_at_all': ['mpifh'],
             'MPI_File_write_at_all':['mpifh'],
             'MPI_File_set_size':    ['mpifh'],
@@ -159,6 +152,11 @@ class MPIMatchHelper:
             'MPI_File_write_ordered':['mpifh'],
         }
         if func in func_args_map:
+            #args = []
+            #for i in range(record.arg_count):
+            #    arg = record.args[i].decode("utf-8", "ignore")
+            #    args.append(arg)
+            args = [record.args[i].decode("utf-8","ignore") for i in range(record.arg_count)]
             arg_names = func_args_map[func]
             mapped_args = dict(zip(arg_names, args))
             return MPICall(rank, seq_id, func, **mapped_args)
@@ -175,7 +173,6 @@ class MPIMatchHelper:
     # Go through every record in the trace and preprocess
     # the mpi calls, so they can be matched later.
     def read_mpi_calls(self, reader):
-        ignored_funcs = set()
         for rank in range(self.num_ranks):
             records = reader.records[rank]
             for seq_id in range(reader.num_records[rank]):
@@ -184,12 +181,6 @@ class MPIMatchHelper:
                 if func_name not in read_nodes.accepted_mpi_funcs: continue
 
                 mpi_call = self.read_one_mpi_call(rank, seq_id, records[seq_id])
-
-                # Not an MPI call or an MPI call that we don't need for 
-                # sync/ordering (.e.g., MPI_File_write_at)
-                if not mpi_call:
-                    ignored_funcs.add(func_name)
-                    continue
 
                 self.all_mpi_calls[rank].append(mpi_call)
 
@@ -213,7 +204,6 @@ class MPIMatchHelper:
                 if func_name.startswith("MPI_Wait") or func_name.startswith("MPI_Test"):
                     self.wait_test_calls[rank].append(index)
 
-        print("Ignored funcs: %s" %ignored_funcs)
 
     def __generate_translation_table(self):
         func_list = self.recorder_reader.funcs
@@ -227,28 +217,22 @@ class MPIMatchHelper:
                 record = records[i]
                 func = func_list[record.func_id]
 
-                comm_id, local_rank, world_rank = None, rank, rank
+                comm, local_rank, world_rank = None, rank, rank
 
                 if func in ['MPI_Comm_split', 'MPI_Comm_split_type', 'MPI_Comm_dup', \
                             'MPI_Cart_create' 'MPI_Comm_create', 'MPI_Cart_sub']:
-                    comm_id = record.args[0]
+                    comm = record.args[0].decode("utf-8", "ignore")
                     local_rank = int(record.args[1])
 
-                if comm_id:
-                    #print(func, comm_id, local_rank, world_rank)
-                    comm = comm_id.decode() if isinstance(comm_id, bytes) else comm_id
+                if comm:
                     if comm not in translate:
                         translate[comm] = list(range(self.num_ranks))
                     translate[comm][local_rank] = world_rank
         return translate
 
-    # Local rank to global rank
-    def local2global(self, comm_id, local_rank):
-        comm = comm_id.decode() if isinstance(comm_id, bytes) else comm_id
-        if local_rank >= 0:
-            return self.translate_table[comm][local_rank]
-        # ANY_SOURCE
-        return local_rank
+    # Communicator local rank to global rank
+    def local2global(self, comm, local_rank):
+        return self.translate_table[comm][local_rank]
 
 
 def find_wait_test_call(req, rank, helper, need_match_src_tag=False, src=0, tag=0):
@@ -302,6 +286,8 @@ def match_collective(mpi_call, helper):
 
     def add_nodes_to_edge(edge, call):
         node = VerifyIONode(call.rank, call.seq_id, call.func)
+        if "MPI_File" in call.func: node.mpifh = call.mpifh
+
         # All-to-all (alltoall, barrier, etc.)
         if edge.call_type == MPICallType.ALL_TO_ALL:
             edge.head.append(node)
@@ -357,7 +343,6 @@ def match_collective(mpi_call, helper):
         coll_call.matched = True
 
     mpi_call.matched = True
-    #print("match collective:", mpi_call.func, "root:", mpi_call.src, mpi_call.comm, mpi_call.req, mpi_call.reqflag)
     return edge
 
 def match_pt2pt(send_call, helper):
@@ -441,5 +426,14 @@ def match_mpi_calls(reader, mpi_sync_calls=False):
         # not be set to matched and removed from the list
         #if len(helper.wait_test_calls[rank]) != 0:
         #    print("Rank %d has %d unmatched wait/test" %(rank, len(helper.wait_test_calls[rank])))
+    # for i in range(len(edges)):
+    #     edge = edges[i]
+    #     print("Head nodes of edge: ", i)
+    #     if isinstance(edge.head, list):
+    #         for n in edge.head:
+    #             print("\t", n)
+    #     else:
+    #         print("\t", edge.head)
+    #     print("")
 
     return edges

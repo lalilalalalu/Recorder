@@ -329,6 +329,7 @@ if __name__ == "__main__":
     reader = RecorderReader(args.traces_folder)
     print('2. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
+
     mpi_nodes = read_mpi_nodes(reader)
     print('3. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
@@ -343,12 +344,14 @@ if __name__ == "__main__":
         all_nodes[rank] = sorted(all_nodes[rank], key=lambda x: x.seq_id)
     print('5. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
+
     # get mpi calls and matched edges
     t1 = time.time()
     mpi_edges = match_mpi_calls(reader)
     t2 = time.time()
     print('6. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
     print("match mpi calls: %.3f secs, mpi edges: %d" %((t2-t1),len(mpi_edges)))
+
 
     t1 = time.time()
     G = VerifyIOGraph(all_nodes, mpi_edges, include_vc=True)

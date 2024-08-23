@@ -560,6 +560,45 @@ void verifyio_record_copy_args(VerifyIORecord* vir, Record* r, int arg_count, ..
 }
 
 /**
+ * In case of MIP_ANY_SOURCE or MIP_ANY_TAG
+ * we need to extract the actual src and tag
+ * from the MPI_Status* argument
+ */
+static inline
+int update_mpi_src_tag(VerifyIORecord* vir, Record* r, int src_idx, int tag_idx, int status_idx) {
+    int src = atoi(r->args[src_idx]);
+    int tag = atoi(r->args[tag_idx]);
+    char* status = r->args[status_idx];
+    
+    if(src == RECORDER_MPI_ANY_SOURCE) {
+        char* p = strstr(status, "_");
+        if (p == NULL) {
+            printf("Failed to parse source rank from MPI status: %s\n", status);
+            fflush(stdout);
+            exit(1);
+        }
+        int len = (int)(p - status);    // including the trailing \0
+        free(vir->args[0]);
+        vir->args[0] = calloc(len, sizeof(char));
+        memcpy(vir->args[0], status+1, len-1);
+    } 
+
+    if(tag == RECORDER_MPI_ANY_TAG) {
+        char* p1 = strstr(status, "_");
+        char* p2 = strstr(status, "]");
+        if (p1 == NULL || p2 == NULL) {
+            printf("Failed to parse tag from MPI status: %s\n", status);
+            fflush(stdout);
+            exit(1);
+        }
+        int len = (int)(p2 - p1);    // including the trailing \0
+        free(vir->args[0]);
+        vir->args[0] = calloc(len, sizeof(char));
+        memcpy(vir->args[1], p1+1, len-1);
+    }
+}
+
+/**
  * Filtering only needed Record for VerifyIO
  * Also keep setsubt of needed arguments
  * Here, we copy the arguments as they will be
@@ -598,10 +637,12 @@ int create_verifyio_record(RecorderReader* reader, Record* r, VerifyIORecord* vi
             strcmp(func_name, "MPI_Isend") == 0) {
             // dst, tag, comm
             verifyio_record_copy_args(vir, r, 3, 3, 4, 5);
-        } else if (strcmp(func_name, "MPI_Recv") == 0 ||
-                   strcmp(func_name, "MPI_Irecv") == 0) {
-            // TODO handle ANY_SOURCE ANY_TAG
-            // src, tag, comm, status/req
+        } else if (strcmp(func_name, "MPI_Recv") == 0) {
+            // src, tag, comm
+            verifyio_record_copy_args(vir, r, 3, 3, 4, 5);
+            update_mpi_src_tag(vir, r, 3, 4, 6);
+        } else if (strcmp(func_name, "MPI_Irecv") == 0) {
+            // src, tag, comm, req
             verifyio_record_copy_args(vir, r, 4, 3, 4, 5, 6);
         } else if (strcmp(func_name, "MPI_Sendrecv") == 0) {
             // src, dst, stag, rtag, comm
