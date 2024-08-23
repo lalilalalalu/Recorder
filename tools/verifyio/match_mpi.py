@@ -3,18 +3,17 @@ from itertools import repeat
 from verifyio_graph import VerifyIONode, MPICallType
 import read_nodes
 
-
 class MPIEdge:
     def __init__(self, call_type, head=None, tail=None):
         # Init head/tail according the cal type
         self.call_type = call_type  # enum of MPICallType
-        if call_type == MPICallType.ALL_TO_ALL:
+        if call_type is MPICallType.ALL_TO_ALL:
             self.head, self.tail = [], []
-        if call_type == MPICallType.ONE_TO_MANY:
+        if call_type is MPICallType.ONE_TO_MANY:
             self.head, self.tail = None, []
-        if call_type == MPICallType.MANY_TO_ONE:
+        if call_type is MPICallType.MANY_TO_ONE:
             self.head, self.tail = [], None
-        if call_type == MPICallType.POINT_TO_POINT:
+        if call_type is MPICallType.POINT_TO_POINT:
             self.head, self.tail = None, None
         # override if supplied
         if head:
@@ -424,9 +423,12 @@ def match_mpi_calls(reader, mpi_sync_calls=False):
         # No need to report unmatched test/wait calls. For example,
         # test calls with some MPI_REQUEST_NULL as input requrests may
         # not be set to matched and removed from the list
-        #if len(helper.wait_test_calls[rank]) != 0:
+        # if len(helper.wait_test_calls[rank]) != 0:
         #    print("Rank %d has %d unmatched wait/test" %(rank, len(helper.wait_test_calls[rank])))
 
+    # Debug output:
+    # print out the nead nodes of each edge
+    """
     for i in range(len(edges)):
         edge = edges[i]
         print("Head nodes of edge: ", i)
@@ -436,5 +438,6 @@ def match_mpi_calls(reader, mpi_sync_calls=False):
         else:
             print("\t", edge.head)
         print("")
+    """
 
     return edges
