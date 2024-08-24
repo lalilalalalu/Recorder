@@ -154,26 +154,66 @@ def verify_session_semantics(G, conflict_pairs,
 def verify_session_semantics2( conflict_pairs,
                              close_ops=["close", "fclose"],
                              open_ops=["open", "fopen"], reader=None, all_nodes=None, mpi_edges=None):
+
     def check_pair_in_order(n1, n2):
-        print("close:", close_ops)
-        print("open", open_ops)
-        print("n1", n1)
-        print("n2", n2)
-        print("all:", all_nodes)
         next_sync = None
         prev_sync = None
         inorder = False
-        for call in all_nodes[n1.rank]:
+        next_sync_index = -1
+        prev_sync_index = -1
+        for idx, call in enumerate(all_nodes[n1.rank]):
             if call.seq_id > n1.seq_id and call.func in close_ops:
                 next_sync = call
+                next_sync_index = idx
                 break
-        for call in all_nodes[n2.rank]:
-            if call.seq_id < n2.seq_id and call.func in open_ops and call.mpifh == next_sync.mpifh:
+        for idx, call in enumerate(reversed(all_nodes[n2.rank]), start=1):
+            if call.seq_id < n2.seq_id and call.func in open_ops:
                 prev_sync = call
                 break
+        #barrier after next sync (n1) & barrier before prev sync (n2)
         if next_sync and prev_sync:
-                for edge in mpi_edges:
-                    pass
+            for sc in all_nodes[n1.rank][next_sync_index+1:]:
+               for edge in mpi_edges:
+                   for edge_call in edge.head:
+                          if str(edge_call) == str(sc):
+                              if edge.tail[n2.rank]:
+                                  if edge.tail[n2.rank].seq_id < prev_sync.seq_id:
+                                        inorder = True
+                                        break
+
+        return inorder
+
+    def check_pair_in_order(n1, n2):
+        next_sync = None
+        prev_sync = None
+        inorder = False
+        next_sync_index = -1
+        prev_sync_index = -1
+        for idx, call in enumerate(all_nodes[n1.rank]):
+            if call.seq_id > n1.seq_id and call.func in close_ops:
+                next_sync = call
+                next_sync_index = idx
+                break
+        for idx, call in enumerate(reversed(all_nodes[n2.rank]), start=1):
+            if call.seq_id < n2.seq_id and call.func in open_ops:
+                prev_sync = call
+                prev_sync_index = len(all_nodes[n2.rank]) - idx
+                break
+        #barrier after next sync (n1) & barrier before prev sync (n2)
+        if next_sync and prev_sync:
+            next_sync_set = all_nodes[n1.rank][next_sync_index+1:]
+            prev_sync_set = all_nodes[n2.rank][:prev_sync_index]
+
+            if next_sync_set and prev_sync_set:
+                for ns in next_sync_set:
+                    for ps in prev_sync_set:
+                        for edge in mpi_edges:
+                            for head_call in edge.head:
+                                if str(head_call) == str(ns):
+                                    for tail_call in edge.tail:
+                                        if str(tail_call) == str(ps):
+                                            inorder = True
+                                            break
 
         return inorder
 
@@ -375,8 +415,8 @@ if __name__ == "__main__":
     if args.semantics == "POSIX":
         p = verify_posix_semantics(G, conflict_pairs)
     elif args.semantics == "MPI-IO":
-        p = verify_mpi_semantics(G, conflict_pairs, reader)
-        # p = verify_mpi_semantics2(conflict_pairs, reader, all_nodes=all_nodes, mpi_edges=mpi_edges)
+        #p = verify_mpi_semantics(G, conflict_pairs, reader)
+        p = verify_mpi_semantics2(conflict_pairs=conflict_pairs, reader=reader, all_nodes=all_nodes, mpi_edges=mpi_edges)
     elif args.semantics == "Commit":
         p = verify_commit_semantics(G, conflict_pairs)
     elif args.semantics == "Session":
