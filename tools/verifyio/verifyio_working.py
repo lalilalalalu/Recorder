@@ -2,6 +2,7 @@ import argparse, time, sys
 from recorder_reader import RecorderReader
 from read_nodes import read_mpi_nodes, read_io_nodes
 from match_mpi import match_mpi_calls
+from tools.verifyio.verifyio_graph import MPICallType
 from verifyio_graph import VerifyIONode, VerifyIOGraph
 
 '''
@@ -160,7 +161,6 @@ def verify_session_semantics2( conflict_pairs,
         prev_sync = None
         inorder = False
         next_sync_index = -1
-        prev_sync_index = -1
         # O(N)
         for idx, call in enumerate(all_nodes[n1.rank]):
             if call.seq_id > n1.seq_id and call.func in close_ops:
@@ -179,12 +179,26 @@ def verify_session_semantics2( conflict_pairs,
                 # O(E)
                 for edge in mpi_edges:
                     # O(H)
-                    for edge_call in edge.head:
-                        if str(edge_call) == str(sc) and edge.tail[n2.rank]:
-                            if edge.tail[n2.rank].seq_id < prev_sync.seq_id:
-                                inorder = True
-                                break
-        #O(N)+O(M)+O(N×E×H)
+                    if edge.call_type == MPICallType.ALL_TO_ALL:
+                        for edge_call in edge.head:
+                            if edge_call.graph_key() == sc.graph_key() and edge.tail[n2.rank]:
+                                #use graph key instead of n2.rank
+                                if edge.tail[n2.rank].seq_id < prev_sync.seq_id:
+                                    inorder = True
+                                    break
+                    elif edge.call_type == MPICallType.ONE_TO_MANY:
+                        if edge.graph_key() == sc.graph_key():
+                            for edge_call in edge.tail:
+                                if edge_call.seq_id < prev_sync.seq_id:
+                                    inorder = True
+                                    break
+                    else:
+                        for edge_call in edge.head:
+                            if edge_call.graph_key() == sc.graph_key():
+                                if edge.tail.seq_id < prev_sync.seq_id:
+                                    inorder = True
+                                    break
+                #O(N)+O(M)+O(N×E×H)
         return inorder
 
     def check_pair_in_order2(n1, n2):
