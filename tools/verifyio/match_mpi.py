@@ -3,6 +3,9 @@ from itertools import repeat
 from verifyio_graph import VerifyIONode, MPICallType
 import read_nodes
 
+ANY_SOURCE = -1
+ANY_TAG = -2
+
 class MPIEdge:
     def __init__(self, call_type, head=None, tail=None):
         # Init head/tail according the cal type
@@ -363,7 +366,7 @@ def match_pt2pt(send_call, helper):
             if recv_call.is_blocking_call():
                 # we don't really need to set this because 
                 # we always start matching from send calls
-                # and we use helper.recv_calls[][] to key
+                # and we use helper.recv_calls[][] to keep
                 # track of unmatched recv calls.
                 recv_call.matched = True
                 tail_node = VerifyIONode(recv_call.rank, recv_call.seq_id, recv_call.func)
