@@ -101,7 +101,6 @@ class VerifyIOGraph:
         #edges = nx.find_cycle(self.G)
         #for edge in edges:
         #    print(edge[0], edge[1])
-        print("run vector clock algorithm...")
         for node_key in nx.topological_sort(self.G):
             vc = self.G.nodes[node_key]['vc']
             for eachpred in self.G.predecessors(node_key):
@@ -111,12 +110,9 @@ class VerifyIOGraph:
 
             self.G.nodes[node_key]['vc'] = vc
             #print(node_key, vc)
-        print("vector clock algorith finished")
 
     def run_transitive_closure(self):
-        print("run transitive closure algorithm...")
         tc = nx.transitive_closure(self.G)
-        print("transitive closure algorithm finished")
 
     # Retrive rank from node key
     def key2rank(self, key):
@@ -214,7 +210,7 @@ class VerifyIOGraph:
 
             # many-to-one, e.g., reduce
             elif edge.call_type == MPICallType.MANY_TO_ONE:
-                print(head, tail)
+                #print(head, tail)
                 for h in head:
                     self.add_edge(h, tail)
             # one-to-many, e.g., bcast

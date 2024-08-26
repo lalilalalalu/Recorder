@@ -259,7 +259,7 @@ if __name__ == "__main__":
 
     io_nodes, conflict_pairs = read_io_nodes(reader, args.traces_folder+"/conflicts.txt")
     t2 = time.time()
-    print("IO time %.3f secs" %(t2-t1))
+    print("Step 1. read trace records and conflicts time: %.3f secs" %(t2-t1))
     print('4. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
     all_nodes = mpi_nodes
@@ -274,22 +274,23 @@ if __name__ == "__main__":
     mpi_edges = match_mpi_calls(reader)
     t2 = time.time()
     print('6. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
-    print("match mpi calls: %.3f secs, mpi edges: %d" %((t2-t1),len(mpi_edges)))
+    print("Step 2. match mpi calls: %.3f secs, mpi edges: %d" %((t2-t1),len(mpi_edges)))
 
 
     t1 = time.time()
     G = VerifyIOGraph(all_nodes, mpi_edges, include_vc=True)
     t2 = time.time()
-    print("build happens-before graph: %.3f secs, nodes: %d" %((t2-t1), G.num_nodes()))
+    print("Step 3. build happens-before graph: %.3f secs, nodes: %d" %((t2-t1), G.num_nodes()))
     print('7. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
     # Correct code (traces) should generate a DAG without any cycles
     if G.check_cycles(): quit()
 
+    t1 = time.time()
     G.run_vector_clock()
     #G.run_transitive_closure()
     t2 = time.time()
-    print("run the algorithm: %.3f secs" %((t2-t1)))
+    print("Step 4. run vector clock algorithm: %.3f secs" %(t2-t1))
     print('8. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
     # G.plot_graph("vgraph.jpg")
@@ -305,10 +306,10 @@ if __name__ == "__main__":
     elif args.semantics == "Session":
         p = verify_session_semantics(G, conflict_pairs, reader)
     t2 = time.time()
-    print('9. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
-
+    print("Step 5. verification time: %.3f secs" %(t2-t1))
     if p:
         print("\nProperly synchronized under %s semantics" %args.semantics)
     else:
         print("\nNot properly synchronized under %s semantics" %args.semantics)
     print("verify time: %.3f secs" %(t2-t1))
+    print('9. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
