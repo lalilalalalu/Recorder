@@ -212,7 +212,7 @@ def verify_session_semantics2( conflict_pairs,
                 #O(N)+O(M)+O(N×E×H)
         return inorder
 
-    def check_pair_in_order(n1, n2):
+    def check_pair_in_order2(n1, n2):
         """
         if (n2.seq_id == 826 and n1.seq_id == 598) or (n1.seq_id == 1856 and n2.seq_id == 1936):
             print(1234)
