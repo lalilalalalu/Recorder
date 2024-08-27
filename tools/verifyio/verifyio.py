@@ -1,4 +1,7 @@
 import argparse, time, sys
+
+from networkx import edges
+
 from recorder_reader import RecorderReader
 from read_nodes import read_mpi_nodes, read_io_nodes
 from match_mpi import match_mpi_calls
@@ -209,6 +212,34 @@ def verify_session_semantics2( conflict_pairs,
                 #O(N)+O(M)+O(N×E×H)
         return inorder
 
+    def check_pair_in_order(n1, n2):
+        """
+        if (n2.seq_id == 826 and n1.seq_id == 598) or (n1.seq_id == 1856 and n2.seq_id == 1936):
+            print(1234)
+        """
+        next_sync = None
+        prev_sync = None
+        inorder = False
+        next_sync_index = -1
+        # O(N)
+        for idx, call in enumerate(all_nodes[n1.rank]):
+            if call.seq_id > n1.seq_id and call.func in close_ops:
+                next_sync = call
+                next_sync_index = idx
+                break
+        # O(M)
+        for idx, call in enumerate(reversed(all_nodes[n2.rank]), start=1):
+            if call.seq_id < n2.seq_id and call.func in open_ops:
+                prev_sync = call
+                break
+        #barrier after next sync (n1) & barrier before prev sync (n2)
+        if next_sync and prev_sync:
+            # O(N)
+            for sc in all_nodes[n1.rank][next_sync_index+1:]:
+                if len(mpi_edges[n1.rank][sc.seq_id]) > 0:
+                    print("works")
+        return inorder
+
     properly_synchronized = True
     # total = len(conflict_pairs)
     i = 0
@@ -342,6 +373,31 @@ def get_conflict_info(nodes: list, reader: RecorderReader, summary=None, show_de
             l_str = build_call_chain_str(reversed(left_call_chain), reader)
             print(f"{nodes[0]}: {l_str} <--> {nodes[1]}: {r_str} on file {file}, properly synchronized: {this_pair_ok}")
 
+
+def map_edges(mpi_edges, reader):
+    # Initialize edges with a list of lists for each rank and sequence ID
+    max_record = max(reader.num_records)
+    num_ranks = reader.nprocs
+
+    edges = [[] for _ in range(num_ranks)]
+    for rank in range(num_ranks):
+        edges[rank] = [[] for _ in range(reader.num_records[rank])]
+
+
+    # Populate the edges list
+    for e in mpi_edges:
+        if e.call_type == MPICallType.ALL_TO_ALL:
+            for edge_call_head in e.head:
+                for edge_call_tail in e.tail:
+                    edges[edge_call_head.rank][edge_call_head.seq_id].append(edge_call_tail)
+        elif e.call_type == MPICallType.ONE_TO_MANY:
+            for edge_call_tail in e.tail:
+                edges[e.head.rank][e.head.seq_id].append(edge_call_tail)
+        else:
+            for edge_call_head in e.head:
+                edges[edge_call_head.rank][edge_call_head.seq_id].append(e.tail)
+    return edges
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -383,6 +439,8 @@ if __name__ == "__main__":
     print('6. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
     print("Step 2. match mpi calls: %.3f secs, mpi edges: %d" %((t2-t1),len(mpi_edges)))
 
+    test = map_edges(mpi_edges, reader)
+    print('123. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
     t1 = time.time()
     G = VerifyIOGraph(all_nodes, mpi_edges, include_vc=True)
