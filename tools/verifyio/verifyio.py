@@ -163,6 +163,7 @@ def verify_session_semantics2( conflict_pairs,
         if (n2.seq_id == 826 and n1.seq_id == 598) or (n1.seq_id == 1856 and n2.seq_id == 1936):
             print(1234)
         """
+        test = map_edges(mpi_edges, reader)
         next_sync = None
         prev_sync = None
         inorder = False
@@ -212,14 +213,9 @@ def verify_session_semantics2( conflict_pairs,
                 #O(N)+O(M)+O(N×E×H)
         return inorder
 
-    def check_pair_in_order2(n1, n2):
-        """
-        if (n2.seq_id == 826 and n1.seq_id == 598) or (n1.seq_id == 1856 and n2.seq_id == 1936):
-            print(1234)
-        """
+    def check_pair_in_order3(n1, n2):
         next_sync = None
         prev_sync = None
-        inorder = False
         next_sync_index = -1
         # O(N)
         for idx, call in enumerate(all_nodes[n1.rank]):
@@ -236,9 +232,15 @@ def verify_session_semantics2( conflict_pairs,
         if next_sync and prev_sync:
             # O(N)
             for sc in all_nodes[n1.rank][next_sync_index+1:]:
-                if len(mpi_edges[n1.rank][sc.seq_id]) > 0:
-                    print("works")
-        return inorder
+                if mpi_edges[n1.rank][sc.seq_id][prev_sync.rank]:
+                    if mpi_edges[n1.rank][sc.seq_id][prev_sync.rank].seq_id <= prev_sync.seq_id:
+                        return True
+                    else:
+                        return False
+                else:
+                    continue
+
+        return False
 
     properly_synchronized = True
     # total = len(conflict_pairs)
@@ -439,7 +441,7 @@ if __name__ == "__main__":
     print('6. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
     print("Step 2. match mpi calls: %.3f secs, mpi edges: %d" %((t2-t1),len(mpi_edges)))
 
-    test = map_edges(mpi_edges, reader)
+
     print('123. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
     t1 = time.time()
@@ -459,13 +461,14 @@ if __name__ == "__main__":
     print('8. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
     # G.plot_graph("vgraph.jpg")
-
+    test = map_edges(mpi_edges, reader)
     t1 = time.time()
     p = True
     if args.semantics == "POSIX":
         p = verify_posix_semantics(G, conflict_pairs)
     elif args.semantics == "MPI-IO":
-        #p = verify_mpi_semantics(G, conflict_pairs, reader)
+        # p = verify_mpi_semantics(G, conflict_pairs, reader)
+        # p = verify_mpi_semantics2(conflict_pairs=conflict_pairs, reader=reader, all_nodes=all_nodes, mpi_edges=test)
         p = verify_mpi_semantics2(conflict_pairs=conflict_pairs, reader=reader, all_nodes=all_nodes, mpi_edges=mpi_edges)
     elif args.semantics == "Commit":
         p = verify_commit_semantics(G, conflict_pairs)
