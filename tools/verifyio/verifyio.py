@@ -2,7 +2,7 @@ import argparse, time, sys
 from recorder_reader import RecorderReader
 from read_nodes import read_mpi_nodes, read_io_nodes
 from match_mpi import match_mpi_calls
-from verifyio_graph import VerifyIONode, VerifyIOGraph
+from verifyio_graph import VerifyIONode, VerifyIOGraph, MPICallType
 
 '''
 def verify_proper_synchronization(G, S, R, pairs):
@@ -150,6 +150,113 @@ def verify_session_semantics(G, conflict_pairs,
     print("Total semantic violations: %d" %i)
     print("Total conflict pairs: %d" %total_conflicts)
     return properly_synchronized
+
+def verify_session_semantics2( conflict_pairs,
+                               close_ops=["close", "fclose"],
+                               open_ops=["open", "fopen"], reader=None, all_nodes=None, mpi_edges=None):
+
+    def check_pair_in_order(n1, n2):
+        """
+        if (n2.seq_id == 826 and n1.seq_id == 598) or (n1.seq_id == 1856 and n2.seq_id == 1936):
+            print(1234)
+        """
+        next_sync = None
+        prev_sync = None
+        inorder = False
+        next_sync_index = -1
+        # O(N)
+        for idx, call in enumerate(all_nodes[n1.rank]):
+            if call.seq_id > n1.seq_id and call.func in close_ops:
+                next_sync = call
+                next_sync_index = idx
+                break
+        # O(M)
+        for idx, call in enumerate(reversed(all_nodes[n2.rank]), start=1):
+            if call.seq_id < n2.seq_id and call.func in open_ops:
+                prev_sync = call
+                break
+        #barrier after next sync (n1) & barrier before prev sync (n2)
+        if next_sync and prev_sync:
+            # O(N)
+            for sc in all_nodes[n1.rank][next_sync_index+1:]:
+                # O(E)
+                for edge in mpi_edges:
+                    # O(H)
+                    if edge.call_type == MPICallType.ALL_TO_ALL:
+                        for edge_call in edge.head:
+                            """
+                            if edge_call.seq_id == 1877 or edge_call.seq_id == 614:
+                                sd= edge_call.graph_key()
+                                ssc= sc.graph_key()
+                                print(sd==ssc)
+                                test = sd==ssc
+                            """
+                            if edge_call.graph_key() == sc.graph_key() and len(edge.tail) > n2.rank:
+                                if edge.tail[n2.rank].seq_id <= prev_sync.seq_id:
+                                    return True
+                                return False
+                    elif edge.call_type == MPICallType.ONE_TO_MANY:
+                        if edge.head.graph_key() == sc.graph_key():
+                            for edge_call in edge.tail:
+                                if edge_call.seq_id <= prev_sync.seq_id:
+                                    return True
+                            return False
+                    else:
+                        for edge_call in edge.head:
+                            if edge_call.graph_key() == sc.graph_key():
+                                if edge.tail.seq_id <= prev_sync.seq_id:
+                                    return True
+                #O(N)+O(M)+O(N×E×H)
+        return inorder
+
+    properly_synchronized = True
+    # total = len(conflict_pairs)
+    i = 0
+    summary = {
+        'c_ranks_cnt': [[0 for _ in range(reader.nprocs)] for _ in range(reader.nprocs)],
+        'c_files_cnt': {},
+        'c_functions_cnt': {}
+    }
+    total_conflicts = 0
+    for pair in conflict_pairs:
+
+        # print progress
+        #sys.stdout.write("%s/%s\r" %(i,total))
+        #sys.stdout.flush()
+
+        n1, n2s = pair[0], pair[1]                   # n1:VerifyIONode, n2s[rank]: array of VerifyIONode
+        for rank in range(len(n2s)):
+            total_conflicts += len(n2s[rank])
+            if len(n2s[rank]) < 1: continue
+            # check if n1 happens-before the first in n2s[rank]
+            # n1 ->hb n2s[rank][0], then n1 ->hb all n2s[rank]
+            if check_pair_in_order(n1, n2s[rank][0]):
+                continue
+            # otherwise, check if last of n2s[rank] happens-beofre n1
+            # n2s[rank][-1] ->hb n1, then all n2s[rank] ->hb n1
+            if check_pair_in_order(n2s[rank][-1], n1):
+                continue
+
+            # now we are here, check for every n2s[rank]
+            for n2 in n2s[rank]:
+                this_pair_ok = (check_pair_in_order(n1, n2) or check_pair_in_order(n2, n1))
+                if not this_pair_ok:
+                    if args.show_summary:
+                        get_conflict_info([n1, n2], reader, summary, args.show_details, this_pair_ok)
+                    i = i + 1
+                    properly_synchronized = False
+
+
+    if args.show_summary:
+        print_summary(summary)
+    print("Total semantic violations: %d" %i)
+    print("Total conflict pairs: %d" %total_conflicts)
+    return properly_synchronized
+
+def verify_mpi_semantics2( conflict_pairs,  reader=None, all_nodes=None, mpi_edges=None):
+    return verify_session_semantics2(conflict_pairs,
+                                     close_ops = ["MPI_File_sync", "MPI_File_close"], \
+                                     open_ops  = ["MPI_File_sync", "MPI_File_open"], reader=reader, all_nodes=all_nodes, mpi_edges=mpi_edges)
 
 def verify_mpi_semantics(G, conflict_pairs,  reader=None):
     return verify_session_semantics(G, conflict_pairs,
@@ -300,7 +407,8 @@ if __name__ == "__main__":
     if args.semantics == "POSIX":
         p = verify_posix_semantics(G, conflict_pairs)
     elif args.semantics == "MPI-IO":
-        p = verify_mpi_semantics(G, conflict_pairs, reader)
+        #p = verify_mpi_semantics(G, conflict_pairs, reader)
+        p = verify_mpi_semantics2(conflict_pairs=conflict_pairs, reader=reader, all_nodes=all_nodes, mpi_edges=mpi_edges)
     elif args.semantics == "Commit":
         p = verify_commit_semantics(G, conflict_pairs)
     elif args.semantics == "Session":
