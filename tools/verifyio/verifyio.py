@@ -102,7 +102,8 @@ def verify_session_semantics(G, conflict_pairs,
             vc2 = G.get_vector_clock(prev_sync)
             inorder = (bool) (vc1[next_sync.rank] < vc2[next_sync.rank])
 
-        # if inorder:
+        # print out shortest path
+        #if inorder:
         #   path_str = get_shortest_path(G, next_sync, prev_sync)
         #   print("%s -> %s -> %s" %(n1, path_str, n2))
         return inorder
@@ -125,11 +126,13 @@ def verify_session_semantics(G, conflict_pairs,
         n1, n2s = pair[0], pair[1]                   # n1:VerifyIONode, n2s[rank]: array of VerifyIONode
         for rank in range(len(n2s)):
             total_conflicts += len(n2s[rank])
-            if len(n2s[rank]) < 1: continue
+            if len(n2s[rank]) == 0: continue
+
             # check if n1 happens-before the first in n2s[rank]
             # n1 ->hb n2s[rank][0], then n1 ->hb all n2s[rank]
             if check_pair_in_order(n1, n2s[rank][0]):
                 continue
+
             # otherwise, check if last of n2s[rank] happens-beofre n1
             # n2s[rank][-1] ->hb n1, then all n2s[rank] ->hb n1
             if check_pair_in_order(n2s[rank][-1], n1):

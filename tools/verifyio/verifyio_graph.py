@@ -96,11 +96,9 @@ class VerifyIOGraph:
     def get_vector_clock(self, n):
         return self.G.nodes[n.graph_key()]['vc']
 
+    # caller need to assume there is no cycle
+    # in the DAG.
     def run_vector_clock(self):
-        # Degug
-        #edges = nx.find_cycle(self.G)
-        #for edge in edges:
-        #    print(edge[0], edge[1])
         for node_key in nx.topological_sort(self.G):
             vc = self.G.nodes[node_key]['vc']
             for eachpred in self.G.predecessors(node_key):
@@ -131,8 +129,13 @@ class VerifyIOGraph:
         path = []
         for key in path_in_keys:
             rank = self.key2rank(key)
-            index = self.G.nodes[key]['index']
-            path.append(self.nodes[rank][index])
+            if rank < len(self.nodes):
+                index = self.G.nodes[key]['index']
+                path.append(self.nodes[rank][index])
+            else:
+                # ghost node has no correspoding node 
+                # in self.nodes
+                path.append(key)
         return path
 
 
@@ -169,7 +172,7 @@ class VerifyIOGraph:
         # have added all nodes. We use this function
         # to add edges of matching MPI calls
         ghost_node_index = 0
-        for edge in mpi_edges[0:161]:
+        for edge in mpi_edges:
             head, tail = edge.head, edge.tail
             # all-to-all
             # TODO is there a many-to-many MPI call that
