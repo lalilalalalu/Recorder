@@ -84,7 +84,7 @@ def read_io_nodes(reader, path):
         n1_buf = buf[0]
         # TODO why is there a [:2] in the end?
         # am i trying to reduce compute?
-        n2s_buf = buf[1].split(" ")[:2]
+        n2s_buf = buf[1].split(" ")
 
         if buf[1] not in exist_n2s:
             exist_n2s.add(buf[1])
