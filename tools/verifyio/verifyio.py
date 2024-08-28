@@ -452,9 +452,11 @@ def map_edges(mpi_edges, reader):
         elif e.call_type == MPICallType.ONE_TO_MANY:
             for edge_call_tail in e.tail:
                 edges[e.head.rank][e.head.seq_id].append(edge_call_tail)
-        else:
+        elif e.call_type == MPICallType.MANY_TO_ONE:
             for edge_call_head in e.head:
                 edges[edge_call_head.rank][edge_call_head.seq_id].append(e.tail)
+        else:
+            edges[e.head.rank][e.head.seq_id].append(e.tail)
     return edges
 
 if __name__ == "__main__":
