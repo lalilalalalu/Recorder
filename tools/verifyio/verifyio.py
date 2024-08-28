@@ -179,7 +179,7 @@ def verify_session_semantics3( conflict_pairs,
         #barrier after next sync (n1) & barrier before prev sync (n2)
         if next_sync and prev_sync:
             # O(N) where N is remaining calls after next_sync
-            for sc in all_nodes[n1.rank][next_sync_index+1:]:
+            for sc in (sc for sc in all_nodes[n1.rank][next_sync_index+1:] if 0 <= prev_sync.rank < len(mpi_edges[n1.rank][sc.seq_id])):
                 if mpi_edges[n1.rank][sc.seq_id][prev_sync.rank]:
                     if mpi_edges[n1.rank][sc.seq_id][prev_sync.rank].seq_id <= prev_sync.seq_id:
                         return True
@@ -343,8 +343,8 @@ def verify_mpi_semantics2( conflict_pairs,  reader=None, all_nodes=None, mpi_edg
                                      close_ops = ["MPI_File_sync", "MPI_File_close"], \
                                      open_ops  = ["MPI_File_sync", "MPI_File_open"], reader=reader, all_nodes=all_nodes, mpi_edges=mpi_edges)
 
-def verify_mpi_semantics2( conflict_pairs,  reader=None, all_nodes=None, mpi_edges=None):
-    return verify_session_semantics2(conflict_pairs,
+def verify_mpi_semantics3( conflict_pairs,  reader=None, all_nodes=None, mpi_edges=None):
+    return verify_session_semantics3(conflict_pairs,
                                      close_ops = ["MPI_File_sync", "MPI_File_close"], \
                                      open_ops  = ["MPI_File_sync", "MPI_File_open"], reader=reader, all_nodes=all_nodes, mpi_edges=mpi_edges)
 
@@ -524,7 +524,7 @@ if __name__ == "__main__":
     if args.semantics == "POSIX":
         p = verify_posix_semantics(G, conflict_pairs)
     elif args.semantics == "MPI-IO":
-        # p = verify_mpi_semantics(G, conflict_pairs, reader)
+        #p = verify_mpi_semantics(G, conflict_pairs, reader)
         p = verify_mpi_semantics3(conflict_pairs=conflict_pairs, reader=reader, all_nodes=all_nodes, mpi_edges=test)
         #p = verify_mpi_semantics2(conflict_pairs=conflict_pairs, reader=reader, all_nodes=all_nodes, mpi_edges=mpi_edges)
     elif args.semantics == "Commit":
