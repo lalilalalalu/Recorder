@@ -634,6 +634,7 @@ int create_verifyio_record(RecorderReader* reader, Record* r, VerifyIORecord* vi
     } else if (func_type == RECORDER_MPI) {
         if (strcmp(func_name, "MPI_Send") == 0  ||
             strcmp(func_name, "MPI_Ssend") == 0 ||
+            strcmp(func_name, "MPI_Issend") == 0 ||
             strcmp(func_name, "MPI_Isend") == 0) {
             // dst, tag, comm
             verifyio_record_copy_args(vir, r, 3, 3, 4, 5);
@@ -700,6 +701,18 @@ int create_verifyio_record(RecorderReader* reader, Record* r, VerifyIORecord* vi
                    (strcmp(func_name, "MPI_Comm_create") == 0)) {
             // comm, local_rank
             verifyio_record_copy_args(vir, r, 2, 2, 3);
+        } else if ((strcmp(func_name, "MPI_Waitall")) == 0) {
+            verifyio_record_copy_args(vir, r, 1, 1);
+        } else if ((strcmp(func_name, "MPI_Wait")) == 0) {
+            verifyio_record_copy_args(vir, r, 1, 0);
+        } else if ((strcmp(func_name, "MPI_Testall")) == 0) {
+            verifyio_record_copy_args(vir, r, 1, 1);
+            int flag = atoi(r->args[2]);
+            if (!flag) sprintf(vir->args[0], "%s", "[]");
+        } else if ((strcmp(func_name, "MPI_Test")) == 0) {
+            verifyio_record_copy_args(vir, r, 1, 0);
+            int flag = atoi(r->args[1]);
+            if (!flag) sprintf(vir->args[0], "%s", "[]");
         }
     } else if (func_type == RECORDER_POSIX) {
         // only keep need *write* *read* POSIX calls

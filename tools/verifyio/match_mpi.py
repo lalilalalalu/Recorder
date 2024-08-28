@@ -34,6 +34,8 @@ class MPICall:
             val = v
             if k in ["src", "dst", "stag", "rtag"]:
                 val = int(v)
+            elif k == "reqs":   # wait*/test* calls "[123,456,...]"
+                val = v[1:-1].split(",")
             setattr(self, k, val)
 
     def get_key(self):
@@ -59,7 +61,7 @@ class MPIMatchHelper:
         self.wait_test_calls = [[] for i in repeat(None, self.num_ranks)]
         self.coll_calls      = [{} for i in repeat(None, self.num_ranks)]
 
-        self.send_func_names   = ['MPI_Send','MPI_Ssend', 'MPI_Isend','MPI_Sendrecv']
+        self.send_func_names   = ['MPI_Send','MPI_Ssend', 'MPI_Issend', 'MPI_Isend','MPI_Sendrecv']
         self.recv_func_names   = ['MPI_Recv', 'MPI_Irecv', 'MPI_Sendrecv']
 
         # According to the MPI standard, not all collective calls serve the purpose
@@ -95,6 +97,11 @@ class MPIMatchHelper:
             return True
         return False
 
+    def is_wait_test_call(self, func_name):
+        if func_name.startswith("MPI_Wait") or func_name.startswith("MPI_Test"):
+            return True
+        return False
+
     def call_type(self, func_name):
         if self.is_send_call(func_name):
             return MPICallType.POINT_TO_POINT
@@ -111,18 +118,22 @@ class MPIMatchHelper:
         func_args_map = {
             'MPI_Send':     ['dst', 'stag', 'comm'],
             'MPI_Ssend':    ['dst', 'stag', 'comm'],
+            'MPI_Issend':   ['dst', 'stag', 'comm'],
             'MPI_Isend':    ['dst', 'stag', 'comm'],
             'MPI_Recv':     ['src', 'rtag', 'comm'],
             'MPI_Sendrecv': ['src', 'dst', 'stag', 'rtag', 'comm'],
             'MPI_Irecv':    ['src', 'rtag', 'comm', 'req'],
-            'MPI_Wait':     ['req', 'src', 'rtag'],
-            'MPI_Waitall':  ['req'],
-            'MPI_Waitany':  ['req', 'tindx'],
-            'MPI_Waitsome': ['req', 'reqflag', 'tindx'],
-            'MPI_Test':     ['req', 'reqflag', 'src', 'rtag'],
-            'MPI_Testall':  ['req', 'reqflag'],
-            'MPI_Testany':  ['req', 'reqflag', 'tindx'],
-            'MPI_Testsome': ['req', 'reqflag', 'tindx'],
+            # for all MPI_Wait/test calls the C reader
+            # code will give us only a single argument
+            # 'req' that holds a list of completed reqs.
+            'MPI_Wait':     ['reqs'],
+            'MPI_Waitall':  ['reqs'],
+            'MPI_Waitany':  ['reqs'],
+            'MPI_Waitsome': ['reqs'],
+            'MPI_Test':     ['reqs'],
+            'MPI_Testall':  ['reqs'],
+            'MPI_Testany':  ['reqs'],
+            'MPI_Testsome': ['reqs'],
             'MPI_Bcast':    ['src', 'comm'],
             'MPI_Ibcast':   ['src', 'comm', 'req'],
             'MPI_Reduce':   ['src', 'comm'],
@@ -154,10 +165,6 @@ class MPIMatchHelper:
             'MPI_File_write_ordered':['mpifh'],
         }
         if func in func_args_map:
-            #args = []
-            #for i in range(record.arg_count):
-            #    arg = record.args[i].decode("utf-8", "ignore")
-            #    args.append(arg)
             args = [record.args[i].decode("utf-8","ignore") for i in range(record.arg_count)]
             arg_names = func_args_map[func]
             mapped_args = dict(zip(arg_names, args))
@@ -165,12 +172,6 @@ class MPIMatchHelper:
         else:
             print(f"{func} not found in func_args_map")
             return MPICall(rank, seq_id, func)
-
-    def mpi_status_to_src_tag(self, status_str):
-            if str(status_str).startswith("["):
-                return status_str[1:-1].split("_")[0], status_str[1:-1].split("_")[1]
-            else:   # MPI_STATUS_IGNORE
-                return 0, 0
 
     # Go through every record in the trace and preprocess
     # the mpi calls, so they can be matched later.
@@ -203,7 +204,7 @@ class MPIMatchHelper:
                 if self.is_recv_call(func_name):
                     global_src = self.local2global(mpi_call.comm, mpi_call.src)
                     self.recv_calls[rank][global_src].append(index)
-                if func_name.startswith("MPI_Wait") or func_name.startswith("MPI_Test"):
+                if self.is_wait_test_call(func_name):
                     self.wait_test_calls[rank].append(index)
 
 
@@ -250,7 +251,7 @@ def find_wait_test_call(req, rank, helper, need_match_src_tag=False, src=0, tag=
 
         if (func == 'MPI_Wait' or func == 'MPI_Waitall') or \
            (func == 'MPI_Test' or func == 'MPI_Testall') :
-            if req in wait_call.req:
+            if req in wait_call.reqs:
                 if need_match_src_tag:
                     if src==wait_call.src and tag==wait_call.rtag:
                         found = wait_call
@@ -258,25 +259,25 @@ def find_wait_test_call(req, rank, helper, need_match_src_tag=False, src=0, tag=
                     found = wait_call
 
                 if found:
-                    wait_call.req.remove(req)
-                    if(len(wait_call.req) == 0):
+                    wait_call.reqs.remove(req)
+                    if(len(wait_call.reqs) == 0):
                         helper.wait_test_calls[rank].remove(idx)
                     break
 
         elif func == 'MPI_Waitany' or func == 'MPI_Testany':
-            if req in wait_call.req:
-                inx = wait_call.req.index(req)
+            if req in wait_call.reqs:
+                inx = wait_call.reqs.index(req)
                 if str(inx) in wait_call.tindx:
                     found = wait_call
                     helper.wait_test_calls[rank].remove(idx)
                     break
 
         elif func == 'MPI_Waitsome' or func == 'MPI_Testsome':
-            if req in wait_call.req:
-                inx = wait_call.req.index(req)
+            if req in wait_call.reqs:
+                inx = wait_call.reqs.index(req)
                 if str(inx) in wait_call.tindx:
                     found = wait_call
-                    wait_call.req.remove(req)
+                    wait_call.reqs.remove(req)
                     wait_call.tindx.remove(str(inx))
                     if len(wait_call.tindx) == 0:
                         helper.wait_test_calls[rank].remove(idx)
@@ -353,7 +354,7 @@ def match_pt2pt(send_call, helper):
     tail_node = None
 
     comm = send_call.comm
-    global_dst =  helper.local2global(comm, send_call.dst)
+    global_dst = helper.local2global(comm, send_call.dst)
     global_src = send_call.rank
 
     for recv_call_idx in helper.recv_calls[global_dst][global_src]:
@@ -372,11 +373,15 @@ def match_pt2pt(send_call, helper):
                 tail_node = VerifyIONode(recv_call.rank, recv_call.seq_id, recv_call.func)
             else:
                 if recv_call.rtag == ANY_TAG or global_src == ANY_SOURCE:
-                    wait_call = find_wait_test_call(recv_call.req, global_dst, helper, True, send_call.rank, send_call.stag)
+                    wt_call = find_wait_test_call(recv_call.req, global_dst, helper, True, send_call.rank, send_call.stag)
                 else:
-                    wait_call = find_wait_test_call(recv_call.req, global_dst, helper)
-                if wait_call:
-                    tail_node = VerifyIONode(wait_call.rank, wait_call.seq_id, wait_call.func)
+                    wt_call = find_wait_test_call(recv_call.req, global_dst, helper)
+                if wt_call:
+                    recv_call.matched = True
+                    tail_node = VerifyIONode(wt_call.rank, wt_call.seq_id, wt_call.func)
+                else:
+                    print("Warning: an nonblocking recv call could not find a matching wait/test call")
+                    print("recv:", recv_call.rank, recv_call.seq_id, recv_call.func)
 
         if tail_node:
             helper.recv_calls[global_dst][global_src].remove(recv_call_idx)

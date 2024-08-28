@@ -206,7 +206,7 @@ static const char* func_list[] = {
     "MPI_Info_create",             "MPI_Info_set",            "MPI_Info_get",
     // Added 2020/08/06
     "MPI_Waitall",                 "MPI_Waitsome",            "MPI_Waitany",
-    "MPI_Ssend",
+    "MPI_Ssend",                   "MPI_Issend",
     // Added 2020/08/17
     "MPI_Comm_split",              "MPI_Comm_dup",            "MPI_Comm_create",
     // Added 2020/08/27

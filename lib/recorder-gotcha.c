@@ -166,6 +166,7 @@ struct gotcha_binding_t mpi_wrap_actions [] = {
     GOTCHA_WRAP_ACTION(MPI_Waitsome),
     GOTCHA_WRAP_ACTION(MPI_Waitany),
     GOTCHA_WRAP_ACTION(MPI_Ssend),
+    GOTCHA_WRAP_ACTION(MPI_Issend),
     GOTCHA_WRAP_ACTION(MPI_Comm_split),
     GOTCHA_WRAP_ACTION(MPI_Comm_dup),
     GOTCHA_WRAP_ACTION(MPI_Comm_create),

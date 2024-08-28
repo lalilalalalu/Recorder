@@ -338,6 +338,7 @@ GOTCHA_WRAP(MPI_Waitall, int, (int count, MPI_Request array_of_requests[], MPI_S
 GOTCHA_WRAP(MPI_Waitsome, int, (int incount, MPI_Request array_of_requests[], int *outcount, int array_of_indices[], MPI_Status array_of_statuses[]));
 GOTCHA_WRAP(MPI_Waitany, int, (int count, MPI_Request array_of_requests[], int *indx, MPI_Status * status));
 GOTCHA_WRAP(MPI_Ssend, int, (CONST void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm));
+GOTCHA_WRAP(MPI_Issend, int, (CONST void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request* request));
 // Add MPI_Comm_split on 2020/08/17
 GOTCHA_WRAP(MPI_Comm_split, int, (MPI_Comm comm, int color, int key, MPI_Comm * newcomm));
 GOTCHA_WRAP(MPI_Comm_dup, int, (MPI_Comm comm, MPI_Comm * newcomm));

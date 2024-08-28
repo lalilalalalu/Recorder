@@ -4,7 +4,7 @@ from itertools import repeat
 from verifyio_graph import VerifyIONode
 
 accepted_mpi_funcs = [
- 'MPI_Send', 'MPI_Ssend', 'MPI_Isend',
+ 'MPI_Send', 'MPI_Ssend', 'MPI_Issend', 'MPI_Isend',
  'MPI_Recv', 'MPI_Sendrecv', 'MPI_Irecv',
  'MPI_Wait', 'MPI_Waitall', 'MPI_Waitany',
  'MPI_Waitsome', 'MPI_Test', 'MPI_Testall',
@@ -82,7 +82,9 @@ def read_io_nodes(reader, path):
 
         buf = line.replace("\n", "").split(":")
         n1_buf = buf[0]
-        n2s_buf = buf[1].split(" ")[:2]
+        # TODO why is there a [:2] in the end?
+        # am i trying to reduce compute?
+        n2s_buf = buf[1].split(" ")
 
         if buf[1] not in exist_n2s:
             exist_n2s.add(buf[1])
