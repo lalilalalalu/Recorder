@@ -165,9 +165,6 @@ def verify_session_semantics3( conflict_pairs,
         next_sync = None
         prev_sync = None
         next_sync_index = -1
-        if (n1.rank == 0 and n1.seq_id == 3004) and (n2.rank == 2 and n2.seq_id == 2532):
-            print(1234)
-        # O(N)
         for idx, call in enumerate(all_nodes[n1.rank]):
             if call.seq_id > n1.seq_id and call.func in close_ops:
                 next_sync = call
@@ -181,14 +178,28 @@ def verify_session_semantics3( conflict_pairs,
         #barrier after next sync (n1) & barrier before prev sync (n2)
         if next_sync and prev_sync:
             # O(N) where N is remaining calls after next_sync
+            """
             for sc in (sc for sc in all_nodes[n1.rank][next_sync_index+1:] if 0 <= prev_sync.rank < len(mpi_edges[n1.rank][sc.seq_id])):
                 if mpi_edges[n1.rank][sc.seq_id][prev_sync.rank]:
                     if mpi_edges[n1.rank][sc.seq_id][prev_sync.rank].seq_id <= prev_sync.seq_id:
-                        return True
-                    else:
-                        return False
-                else:
-                    continue
+                        if mpi_edges[n1.rank][sc.seq_id][prev_sync.rank]:
+                            if mpi_edges[n1.rank][sc.seq_id][prev_sync.rank].seq_id <= prev_sync.seq_id:
+                                return True
+                            else:
+                                return False
+                        else:
+                            continue
+            """
+            for sc in all_nodes[n1.rank][next_sync_index+1:]:
+                if mpi_edges[n1.rank].get(sc.seq_id):
+                    if 0 <= prev_sync.rank < len(mpi_edges[n1.rank].get(sc.seq_id)):
+                        if mpi_edges[n1.rank].get(sc.seq_id)[prev_sync.rank]:
+                            if mpi_edges[n1.rank].get(sc.seq_id)[prev_sync.rank].seq_id <= prev_sync.seq_id:
+                                return True
+                            else:
+                                return False
+                        else:
+                            continue
 
         return False
 
@@ -236,114 +247,6 @@ def verify_session_semantics3( conflict_pairs,
     print("Total conflict pairs: %d" %total_conflicts)
     return properly_synchronized
 
-
-def verify_session_semantics2( conflict_pairs,
-                               close_ops=["close", "fclose"],
-                               open_ops=["open", "fopen"], reader=None, all_nodes=None, mpi_edges=None):
-
-    def check_pair_in_order(n1, n2):
-        """
-        if (n2.seq_id == 826 and n1.seq_id == 598) or (n1.seq_id == 1856 and n2.seq_id == 1936):
-            print(1234)
-        """
-        test = map_edges(mpi_edges, reader)
-        next_sync = None
-        prev_sync = None
-        inorder = False
-        next_sync_index = -1
-        # O(N)
-        for idx, call in enumerate(all_nodes[n1.rank]):
-            if call.seq_id > n1.seq_id and call.func in close_ops:
-                next_sync = call
-                next_sync_index = idx
-                break
-        # O(M)
-        for idx, call in enumerate(reversed(all_nodes[n2.rank]), start=1):
-            if call.seq_id < n2.seq_id and call.func in open_ops:
-                prev_sync = call
-                break
-        #barrier after next sync (n1) & barrier before prev sync (n2)
-        if next_sync and prev_sync:
-            # O(N)
-            for sc in all_nodes[n1.rank][next_sync_index+1:]:
-                # O(E)
-                for edge in mpi_edges:
-                    # O(H)
-                    if edge.call_type == MPICallType.ALL_TO_ALL:
-                        for edge_call in edge.head:
-                            """
-                            if edge_call.seq_id == 1877 or edge_call.seq_id == 614:
-                                sd= edge_call.graph_key()
-                                ssc= sc.graph_key()
-                                print(sd==ssc)
-                                test = sd==ssc
-                            """
-                            if edge_call.graph_key() == sc.graph_key() and len(edge.tail) > n2.rank:
-                                if edge.tail[n2.rank].seq_id <= prev_sync.seq_id:
-                                    return True
-                                return False
-                    elif edge.call_type == MPICallType.ONE_TO_MANY:
-                        if edge.head.graph_key() == sc.graph_key():
-                            for edge_call in edge.tail:
-                                if edge_call.seq_id <= prev_sync.seq_id:
-                                    return True
-                            return False
-                    else:
-                        for edge_call in edge.head:
-                            if edge_call.graph_key() == sc.graph_key():
-                                if edge.tail.seq_id <= prev_sync.seq_id:
-                                    return True
-                #O(N)+O(M)+O(N×E×H)
-        return inorder
-
-    properly_synchronized = True
-    # total = len(conflict_pairs)
-    i = 0
-    summary = {
-        'c_ranks_cnt': [[0 for _ in range(reader.nprocs)] for _ in range(reader.nprocs)],
-        'c_files_cnt': {},
-        'c_functions_cnt': {}
-    }
-    total_conflicts = 0
-    for pair in conflict_pairs:
-
-        # print progress
-        #sys.stdout.write("%s/%s\r" %(i,total))
-        #sys.stdout.flush()
-
-        n1, n2s = pair[0], pair[1]                   # n1:VerifyIONode, n2s[rank]: array of VerifyIONode
-        for rank in range(len(n2s)):
-            total_conflicts += len(n2s[rank])
-            if len(n2s[rank]) < 1: continue
-            # check if n1 happens-before the first in n2s[rank]
-            # n1 ->hb n2s[rank][0], then n1 ->hb all n2s[rank]
-            if check_pair_in_order(n1, n2s[rank][0]):
-                continue
-            # otherwise, check if last of n2s[rank] happens-beofre n1
-            # n2s[rank][-1] ->hb n1, then all n2s[rank] ->hb n1
-            if check_pair_in_order(n2s[rank][-1], n1):
-                continue
-
-            # now we are here, check for every n2s[rank]
-            for n2 in n2s[rank]:
-                this_pair_ok = (check_pair_in_order(n1, n2) or check_pair_in_order(n2, n1))
-                if not this_pair_ok:
-                    if args.show_summary:
-                        get_conflict_info([n1, n2], reader, summary, args.show_details, this_pair_ok)
-                    i = i + 1
-                    properly_synchronized = False
-
-
-    if args.show_summary:
-        print_summary(summary)
-    print("Total semantic violations: %d" %i)
-    print("Total conflict pairs: %d" %total_conflicts)
-    return properly_synchronized
-
-def verify_mpi_semantics2( conflict_pairs,  reader=None, all_nodes=None, mpi_edges=None):
-    return verify_session_semantics2(conflict_pairs,
-                                     close_ops = ["MPI_File_sync", "MPI_File_close"], \
-                                     open_ops  = ["MPI_File_sync", "MPI_File_open"], reader=reader, all_nodes=all_nodes, mpi_edges=mpi_edges)
 
 def verify_mpi_semantics3( conflict_pairs,  reader=None, all_nodes=None, mpi_edges=None):
     return verify_session_semantics3(conflict_pairs,
@@ -436,30 +339,53 @@ def get_conflict_info(nodes: list, reader: RecorderReader, summary=None, show_de
 
 
 def map_edges(mpi_edges, reader):
-    # Initialize edges with a list of lists for each rank and sequence ID
-    max_record = max(reader.num_records)
+
     num_ranks = reader.nprocs
+    edges = [{} for _ in range(num_ranks)]
 
-    edges = [[[] for _ in range(num_ranks)] for _ in range(num_ranks)]
-    for rank in range(num_ranks):
-        edges[rank] = [[None for _ in range(num_ranks)] for _ in range(reader.num_records[rank])]
-
-    #Px1
     for e in mpi_edges:
         if e.call_type == MPICallType.ALL_TO_ALL:
             for edge_call_head in e.head:
+                if edge_call_head.seq_id not in edges[edge_call_head.rank]:
+                    edges[edge_call_head.rank][edge_call_head.seq_id] = [None] * num_ranks
                 for edge_call_tail in e.tail:
                     edges[edge_call_head.rank][edge_call_head.seq_id][edge_call_tail.rank] = edge_call_tail
         elif e.call_type == MPICallType.ONE_TO_MANY:
+            if e.head.seq_id not in edges[e.head.rank]:
+                edges[e.head.rank][e.head.seq_id] = [None] * num_ranks
             for edge_call_tail in e.tail:
                 edges[e.head.rank][e.head.seq_id][edge_call_tail.rank] = edge_call_tail
         elif e.call_type == MPICallType.MANY_TO_ONE:
             for edge_call_head in e.head:
+                if edge_call_head.seq_id not in edges[edge_call_head.rank]:
+                    edges[edge_call_head.rank][edge_call_head.seq_id] = [None] * num_ranks
                 edges[edge_call_head.rank][edge_call_head.seq_id][e.tail.rank] = e.tail
         else:
+            if e.head.seq_id not in edges[e.head.rank]:
+                edges[e.head.rank][e.head.seq_id] = [None] * num_ranks
             edges[e.head.rank][e.head.seq_id][e.tail.rank] = e.tail
 
     return edges
+
+    # num_ranks = reader.nprocs
+    # edges = [[[] for _ in range(num_ranks)] for _ in range(num_ranks)]
+    # for rank in range(num_ranks):
+    #     edges[rank] = [[None for _ in range(num_ranks)] for _ in range(reader.num_records[rank])]
+    # for e in mpi_edges:
+    #     if e.call_type == MPICallType.ALL_TO_ALL:
+    #         for edge_call_head in e.head:
+    #             for edge_call_tail in e.tail:
+    #                 edges[edge_call_head.rank][edge_call_head.seq_id][edge_call_tail.rank] = edge_call_tail
+    #     elif e.call_type == MPICallType.ONE_TO_MANY:
+    #         for edge_call_tail in e.tail:
+    #             edges[e.head.rank][e.head.seq_id][edge_call_tail.rank] = edge_call_tail
+    #     elif e.call_type == MPICallType.MANY_TO_ONE:
+    #         for edge_call_head in e.head:
+    #             edges[edge_call_head.rank][edge_call_head.seq_id][e.tail.rank] = e.tail
+    #     else:
+    #         edges[e.head.rank][e.head.seq_id][e.tail.rank] = e.tail
+    #
+    # return edges
 
 if __name__ == "__main__":
 
