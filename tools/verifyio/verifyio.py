@@ -165,6 +165,8 @@ def verify_session_semantics3( conflict_pairs,
         next_sync = None
         prev_sync = None
         next_sync_index = -1
+        if (n1.rank == 0 and n1.seq_id == 3004) and (n2.rank == 2 and n2.seq_id == 2532):
+            print(1234)
         # O(N)
         for idx, call in enumerate(all_nodes[n1.rank]):
             if call.seq_id > n1.seq_id and call.func in close_ops:
@@ -438,25 +440,25 @@ def map_edges(mpi_edges, reader):
     max_record = max(reader.num_records)
     num_ranks = reader.nprocs
 
-    edges = [[] for _ in range(num_ranks)]
+    edges = [[[] for _ in range(num_ranks)] for _ in range(num_ranks)]
     for rank in range(num_ranks):
-        edges[rank] = [[] for _ in range(reader.num_records[rank])]
+        edges[rank] = [[None for _ in range(num_ranks)] for _ in range(reader.num_records[rank])]
 
     #Px1
-    # Populate the edges list
     for e in mpi_edges:
         if e.call_type == MPICallType.ALL_TO_ALL:
             for edge_call_head in e.head:
                 for edge_call_tail in e.tail:
-                    edges[edge_call_head.rank][edge_call_head.seq_id].append(edge_call_tail)
+                    edges[edge_call_head.rank][edge_call_head.seq_id][edge_call_tail.rank] = edge_call_tail
         elif e.call_type == MPICallType.ONE_TO_MANY:
             for edge_call_tail in e.tail:
-                edges[e.head.rank][e.head.seq_id].append(edge_call_tail)
+                edges[e.head.rank][e.head.seq_id][edge_call_tail.rank] = edge_call_tail
         elif e.call_type == MPICallType.MANY_TO_ONE:
             for edge_call_head in e.head:
-                edges[edge_call_head.rank][edge_call_head.seq_id].append(e.tail)
+                edges[edge_call_head.rank][edge_call_head.seq_id][e.tail.rank] = e.tail
         else:
-            edges[e.head.rank][e.head.seq_id].append(e.tail)
+            edges[e.head.rank][e.head.seq_id][e.tail.rank] = e.tail
+
     return edges
 
 if __name__ == "__main__":
