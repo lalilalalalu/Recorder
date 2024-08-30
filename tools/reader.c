@@ -633,11 +633,13 @@ int create_verifyio_record(RecorderReader* reader, Record* r, VerifyIORecord* vi
         }
     } else if (func_type == RECORDER_MPI) {
         if (strcmp(func_name, "MPI_Send") == 0  ||
-            strcmp(func_name, "MPI_Ssend") == 0 ||
-            strcmp(func_name, "MPI_Issend") == 0 ||
-            strcmp(func_name, "MPI_Isend") == 0) {
+            strcmp(func_name, "MPI_Ssend") == 0) {
             // dst, tag, comm
             verifyio_record_copy_args(vir, r, 3, 3, 4, 5);
+        } else if (strcmp(func_name, "MPI_Issend") == 0 ||
+                   strcmp(func_name, "MPI_Isend") == 0) {
+            // dst, tag, comm, req
+            verifyio_record_copy_args(vir, r, 4, 3, 4, 5, 6);
         } else if (strcmp(func_name, "MPI_Recv") == 0) {
             // src, tag, comm
             verifyio_record_copy_args(vir, r, 3, 3, 4, 5);
