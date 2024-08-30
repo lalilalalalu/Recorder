@@ -146,7 +146,7 @@ def verify_session_semantics(G, conflict_pairs,
                 this_pair_ok = (check_pair_in_order(n1, n2) or check_pair_in_order(n2, n1))
                 if not this_pair_ok:
                     if args.show_summary:
-                        get_conflict_info([n1, n2], reader, summary, args.show_details, this_pair_ok)
+                        get_conflict_info([n1, n2], reader, summary, args.show_details, this_pair_ok, args.show_full_chain)
                     i = i + 1
                     properly_synchronized = False
 
@@ -225,7 +225,7 @@ def verify_session_semantics3( conflict_pairs,
                 this_pair_ok = (check_pair_in_order(n1, n2) or check_pair_in_order(n2, n1))
                 if not this_pair_ok:
                     if args.show_summary:
-                        get_conflict_info([n1, n2], reader, summary, args.show_details, this_pair_ok)
+                        get_conflict_info([n1, n2], reader, summary, args.show_details, this_pair_ok, args.show_full_chain)
                     i = i + 1
                     properly_synchronized = False
 
@@ -270,7 +270,7 @@ def verify_commit_semantics(G, conflict_pairs):
 
     return properly_synchronized
 
-def get_call_chain(node, reader):
+def get_call_full_chain(node, reader):
     call_chain = []
     seq_id = node.seq_id
     while reader.records[node.rank][seq_id].call_depth > 0:
@@ -279,7 +279,7 @@ def get_call_chain(node, reader):
     call_chain.append(reader.records[node.rank][seq_id])
     return call_chain
 
-def get_call_chain(node, reader):
+def get_call_partial_chain(node, reader):
     call_chain = []
     seq_id = node.seq_id
     added_depths = set()
@@ -296,6 +296,14 @@ def get_call_chain(node, reader):
         call_chain.append(root_record)
     
     return call_chain
+
+def get_call_chain(node, reader, show_full_chain=False):
+    if show_full_chain:
+        return get_call_full_chain(node=node, reader=reader)
+    else:
+        return get_call_partial_chain(node=node, reader=reader)
+
+
 
 def update_function_count(func_id, summary, reader):
     func_name = reader.funcs[func_id]
@@ -327,9 +335,9 @@ def print_summary(summary):
         print(f"{key:<50} {count:<20}")
     print("=" * 80)
 
-def get_conflict_info(nodes: list, reader: RecorderReader, summary=None, show_details=False, this_pair_ok=False):
-    left_call_chain = get_call_chain(nodes[0], reader)
-    right_call_chain = get_call_chain(nodes[1], reader)
+def get_conflict_info(nodes: list, reader: RecorderReader, summary=None, show_details=False, this_pair_ok=False, show_full_chain=False):
+    left_call_chain = get_call_chain(nodes[0], reader, show_full_chain)
+    right_call_chain = get_call_chain(nodes[1], reader, show_full_chain)
     file = reader.records[nodes[0].rank][nodes[0].seq_id].args[0].decode('utf-8')
     if len(left_call_chain) > 0 and len(right_call_chain) > 0:
         summary['c_ranks_cnt'][nodes[0].rank][nodes[1].rank] += 1
@@ -341,7 +349,7 @@ def get_conflict_info(nodes: list, reader: RecorderReader, summary=None, show_de
         if show_details:
             r_str = build_call_chain_str(right_call_chain, reader)
             l_str = build_call_chain_str(reversed(left_call_chain), reader)
-            print(f"{nodes[0]}: {l_str} <--> {nodes[1]}: {r_str} on file {file}, properly synchronized: {this_pair_ok}")
+            print(f"{nodes[0]}: {l_str} <--> {nodes[1]}: {r_str} on file {file}")
 
 
 def map_edges(mpi_edges, reader):
@@ -382,6 +390,7 @@ if __name__ == "__main__":
                         default="MPI-IO", help="Verify if I/O operations are properly synchronized under the specific semantics")
     parser.add_argument("--show_details", action="store_true", help="Show details of the conflicts")
     parser.add_argument("--show_summary", action="store_true", help="Show summary of the conflicts")
+    parser.add_argument("--show_full_chain", action="store_true", help="Show the full call chain of the conflicts")
     args = parser.parse_args()
 
     import psutil
