@@ -279,6 +279,24 @@ def get_call_chain(node, reader):
     call_chain.append(reader.records[node.rank][seq_id])
     return call_chain
 
+def get_call_chain(node, reader):
+    call_chain = []
+    seq_id = node.seq_id
+    added_depths = set()
+    
+    while reader.records[node.rank][seq_id].call_depth > 0:
+        current_record = reader.records[node.rank][seq_id]
+        if current_record.call_depth not in added_depths:
+            call_chain.append(current_record)
+            added_depths.add(current_record.call_depth)
+        seq_id -= 1
+    
+    root_record = reader.records[node.rank][seq_id]
+    if root_record.call_depth not in added_depths:
+        call_chain.append(root_record)
+    
+    return call_chain
+
 def update_function_count(func_id, summary, reader):
     func_name = reader.funcs[func_id]
     summary['c_functions_cnt'][func_name] = summary['c_functions_cnt'].get(func_name, 0) + 1
