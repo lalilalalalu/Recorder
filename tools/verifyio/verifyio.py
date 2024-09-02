@@ -41,6 +41,17 @@ TODO: choose algorithm dynamically
 """
 def verify_pair_proper_synchronization(n1, n2, vio):
 
+    # First check if the I/O operations are protected
+    # by locks (e.g., flock() or fcntl())
+    # TODO: this is not fully correct, as we only check
+    # for the existence of those calls. We did not check
+    # for lock acquire/realse or whther the file name is
+    # the same as the I/O.
+    for r in vio.reader.records[n1.rank][n1.seq_id-5:n1.seq_id+5]:
+        func_name = vio.reader.funcs[r.func_id]
+        if func_name == "fcntl" or func_name == "flock":
+            return True
+
     v1, v2 = None, None
 
     if vio.semantics == "POSIX":
@@ -56,7 +67,7 @@ def verify_pair_proper_synchronization(n1, n2, vio):
     elif vio.semantics == "MPI-IO":
         v1 = vio.G.next_po_node(n1, ["MPI_File_close", "MPI_File_sync"])
         v2 = vio.G.prev_po_node(n2, ["MPI_File_open",  "MPI_File_sync"])
-    
+
     if (not v1) or (not v2):
         return False
 
@@ -138,7 +149,7 @@ def verify_execution_proper_synchronization(conflict_pairs, vio:VerifyIO):
                 and (not verify_pair_proper_synchronization(n2s[rank][0], n1, vio)):
                 total_violations += len(n2s[rank])
                 for n2 in n2s[rank]:
-                    print("POSIX violation: ", n1, n2)
+                    print(f"{vio.semantics} violation: {n1} {n2}")
                 continue
 
             # now we are here, its very likely that n1 is not
