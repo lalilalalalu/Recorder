@@ -163,8 +163,7 @@ def verify_execution_proper_synchronization(conflict_pairs, vio:VerifyIO):
                     if args.show_summary:
                         get_violation_info([n1, n2], vio, summary, this_pair_ok)
                     total_violations += 1
-                    debug_str = f"{n1} {n2}"
-                    print(debug_str)
+                    print(f"{vio.semantics} violation: {n1} {n2}")
 
         t2 = time.time()
         #print(debug_str+", time: %.3f" %(t2-t1))

@@ -159,13 +159,19 @@ class VerifyIOGraph:
                 self.G.nodes[t.graph_key()]['index'] = i+1
 
                 # Include vector clock for each node
-                if include_vc:
-                    vc1 = [0] * (nprocs + 1)    # one more for ghost rank
-                    vc2 = [0] * (nprocs + 1)    # one more for ghost rank 
-                    vc1[rank] = i
-                    vc2[rank] = i+1
-                    self.G.nodes[h.graph_key()]['vc'] = vc1
-                    self.G.nodes[t.graph_key()]['vc'] = vc2
+                if not include_vc: continue
+                vc1 = [0] * (nprocs + 1)    # one more for ghost rank
+                vc2 = [0] * (nprocs + 1)    # one more for ghost rank 
+                vc1[rank] = i
+                vc2[rank] = i+1
+                self.G.nodes[h.graph_key()]['vc'] = vc1
+                self.G.nodes[t.graph_key()]['vc'] = vc2
+
+            # corner case: when this rank has only one node
+            # the code will not run into the previous for loop
+            if len(all_nodes[rank]) == 1:
+                n = all_nodes[rank][0]
+                self.G.add_node(n.graph_key(), index=0, vc=[0]*(nprocs+1))
 
         # 2. Add synchornzation orders (using mpi edges)
         # Before calling this function, we should
@@ -180,21 +186,26 @@ class VerifyIOGraph:
             # for now we assume head == tail
             if edge.call_type == MPICallType.ALL_TO_ALL:
                 if len(head) <= 1: continue
-                # Method 1:
                 # Add a ghost node and connect all predecessors
                 # and successors from all ranks. This prvents the circle
                 ghost_node = VerifyIONode(rank=nprocs, seq_id=ghost_node_index, func="ghost")
                 for h in head:
                     # use list() to make a copy to avoid the runtime
                     # error of "dictionary size changed during iteration"
-                    successors = list(self.G.successors(h.graph_key()))
-                    for successor in successors:
-                        self.G.remove_edge(h.graph_key(), successor)
-                    if len(list(self.G.successors(h.graph_key()))) != 0 :
-                        print("Not possible!")
-                    for successor in successors:
-                        self.G.add_edge(ghost_node.graph_key(), successor)
-                
+                    try:
+                        successors = list(self.G.successors(h.graph_key()))
+                        for successor in successors:
+                            self.G.remove_edge(h.graph_key(), successor)
+                        if len(list(self.G.successors(h.graph_key()))) != 0 :
+                            print("Not possible!")
+                        for successor in successors:
+                            self.G.add_edge(ghost_node.graph_key(), successor)
+                    except nx.exception.NetworkXError:
+                        # when the node has no successors, the G.successors()
+                        # function through an error instead of an empty list
+                        # (e.g., the last node in the graph)
+                        pass
+
                 for h in head:
                     self.add_edge(h, ghost_node)
 
@@ -202,14 +213,6 @@ class VerifyIOGraph:
                 vc[nprocs] = ghost_node_index
                 self.G.nodes[ghost_node.graph_key()]['vc'] = vc
                 ghost_node_index += 1
-
-                # Method 2: Native method, connecting all nodes
-                # Add all-to-all edges will create circle and prevent
-                # the use of topological sort
-                #for i in range(len(head)):
-                #    for j in range(len(head)):
-                #        if i != j:
-                #            self.add_edge(head[i], head[j])
 
             # many-to-one, e.g., reduce
             elif edge.call_type == MPICallType.MANY_TO_ONE:
