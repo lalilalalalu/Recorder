@@ -717,12 +717,12 @@ int create_verifyio_record(RecorderReader* reader, Record* r, VerifyIORecord* vi
             if (!flag) sprintf(vir->args[0], "%s", "[]");
         }
     } else if (func_type == RECORDER_POSIX) {
-        // only keep need *write* *read* POSIX calls
-        if (strstr(func_name, "write") || strstr(func_name, "read")) {
-            vir->arg_count = r->arg_count;
-            vir->args = (char**) malloc(sizeof(char*)*vir->arg_count);
-            for(int i = 0; i < vir->arg_count; i++)
-                vir->args[i] = strdup(r->args[i]);
+        // only keep needed *write* *read* POSIX calls
+        // additionally, MPI-IO often uses fcntl to lock files.
+        if (strstr(func_name, "write") ||
+            strstr(func_name, "read")  ||
+            strstr(func_name, "fcntl")) {
+            verifyio_record_copy_args(vir, r, 1, 0);
         } else {
             //included = 0;
         }
