@@ -101,6 +101,8 @@ install
 
 /build/
 .cache
+.idea/
+/cmake-build-debug/
 
 # clangd database
 compile_commands.json
