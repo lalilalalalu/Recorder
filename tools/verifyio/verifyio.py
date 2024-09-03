@@ -2,7 +2,7 @@ import argparse, time, sys
 from recorder_reader import RecorderReader
 from read_nodes import read_mpi_nodes, read_io_nodes
 from match_mpi import match_mpi_calls
-from verifyio_graph import VerifyIONode, VerifyIOGraph
+from verifyio_graph import VerifyIONode, VerifyIOGraph, MPICallType
 
 """
 A data structure to make it easier
@@ -10,12 +10,30 @@ to pass around infomration
 """
 class VerifyIO:
     def __init__(self, args):
-        self.semantics = args.semantics         # Semantics to check
-        self.algorithm = args.algorithm         # Algorithm for verification
-        self.show_summary = args.show_summary   # whether to show summary in the end
-        self.show_details = args.show_details   # whether to show violation details
-        self.reader = None                      # RecorderReader
-        self.G = None                           # Happens-before Graph (VerifyIOGraph)
+        self.semantics = args.semantics             # Semantics to check
+        self.algorithm = args.algorithm             # Algorithm for verification
+        self.show_summary = args.show_summary       # whether to show summary in the end
+        self.show_details = args.show_details       # whether to show violation details
+        self.show_full_chain = args.show_full_chain # whether to show full call chain
+        self.reader = None                          # RecorderReader
+        self.G = None                               # Happens-before Graph (VerifyIOGraph)
+        self.use_graph = args.use_graph             # whether to use graph for verification
+
+
+def find_next_prev_sync(n1, n2, all_nodes, close_ops, open_ops):
+    v1, v2, next_sync_index = None, None, None
+    for idx, call in enumerate(all_nodes[n1.rank]):
+        if call.seq_id > n1.seq_id and call.func in close_ops:
+            v1 = call
+            next_sync_index = idx
+            break
+
+    for idx, call in enumerate(reversed(all_nodes[n2.rank]), start=1):
+        if call.seq_id < n2.seq_id and call.func in open_ops:
+            v2 = call
+            break
+    return v1, v2, next_sync_index
+
 
 """
 Verify for a given conflicting pair of (c1, c2),
@@ -53,7 +71,7 @@ def verify_pair_proper_synchronization(n1, n2, vio):
         if func_name == "fcntl" or func_name == "flock":
             return True
 
-    v1, v2 = None, None
+    v1, v2, next_sync_index = None, None, None
 
     if vio.semantics == "POSIX":
         v1 = n1
@@ -62,11 +80,17 @@ def verify_pair_proper_synchronization(n1, n2, vio):
         v1 = vio.G.next_hb_node(n1, ["fsync", "close", "fclose"], rank)
         v2 = n2
     elif vio.semantics == "Session":
-        v1 = vio.G.next_po_node(n1, ["close", "fclose", "fsync"])
-        v2 = vio.G.prev_po_node(n2, ["open",  "fopen",  "fsync"])
+        if vio.G is None:
+            v1, v2, next_sync_index = find_next_prev_sync(n1, n2, all_nodes, ["close", "fclose", "fsync"], ["open",  "fopen",  "fsync"])
+        else:
+            v1 = vio.G.next_po_node(n1, ["close", "fclose", "fsync"])
+            v2 = vio.G.prev_po_node(n2, ["open",  "fopen",  "fsync"])
     elif vio.semantics == "MPI-IO":
-        v1 = vio.G.next_po_node(n1, ["MPI_File_close", "MPI_File_sync"])
-        v2 = vio.G.prev_po_node(n2, ["MPI_File_open",  "MPI_File_sync"])
+        if vio.G is None:
+            v1, v2, next_sync_index = find_next_prev_sync(n1, n2, all_nodes, ["MPI_File_close", "MPI_File_sync"], ["MPI_File_open",  "MPI_File_sync"])
+        else:
+            v1 = vio.G.next_po_node(n1, ["MPI_File_close", "MPI_File_sync"])
+            v2 = vio.G.prev_po_node(n2, ["MPI_File_open",  "MPI_File_sync"])
 
     if (not v1) or (not v2):
         return False
@@ -90,6 +114,17 @@ def verify_pair_proper_synchronization(n1, n2, vio):
 
     # Algorithm 4: On-the-fly MPI check
     if vio.algorithm == 4:
+        # O(N) where N is remaining calls after next_sync
+        for next_call in all_nodes[n1.rank][next_sync_index+1:]:
+            edge = mapped_mpi_edges[n1.rank].get(next_call.seq_id)
+            if edge:
+                if edge[v2.rank]:
+                    if edge[v2.rank].seq_id <= v2.seq_id:
+                        return True
+                    else:
+                        return False
+                else:
+                    continue
         return False
 
 
@@ -174,6 +209,36 @@ def verify_execution_proper_synchronization(conflict_pairs, vio:VerifyIO):
     print("Total conflict pairs: %d" %total_conflicts)
 
 
+# A helper function to map the mpi edges to a 3D data structure to reduce the search time without changing the original mpi_edges
+def map_edges(mpi_edges, reader):
+    num_ranks = reader.nprocs
+    edges = [{} for _ in range(num_ranks)]
+
+    for e in mpi_edges:
+        if e.call_type == MPICallType.ALL_TO_ALL:
+            for edge_call_head in e.head:
+                if edge_call_head.seq_id not in edges[edge_call_head.rank]:
+                    edges[edge_call_head.rank][edge_call_head.seq_id] = [None] * num_ranks
+                for edge_call_tail in e.tail:
+                    edges[edge_call_head.rank][edge_call_head.seq_id][edge_call_tail.rank] = edge_call_tail
+        elif e.call_type == MPICallType.ONE_TO_MANY:
+            if e.head.seq_id not in edges[e.head.rank]:
+                edges[e.head.rank][e.head.seq_id] = [None] * num_ranks
+            for edge_call_tail in e.tail:
+                edges[e.head.rank][e.head.seq_id][edge_call_tail.rank] = edge_call_tail
+        elif e.call_type == MPICallType.MANY_TO_ONE:
+            for edge_call_head in e.head:
+                if edge_call_head.seq_id not in edges[edge_call_head.rank]:
+                    edges[edge_call_head.rank][edge_call_head.seq_id] = [None] * num_ranks
+                edges[edge_call_head.rank][edge_call_head.seq_id][e.tail.rank] = e.tail
+        else:
+            if e.head.seq_id not in edges[e.head.rank]:
+                edges[e.head.rank][e.head.seq_id] = [None] * num_ranks
+            edges[e.head.rank][e.head.seq_id][e.tail.rank] = e.tail
+
+    return edges
+
+
 def get_shortest_path(G:VerifyIOGraph, src:VerifyIONode, dst:VerifyIONode):
     path = G.shortest_path(src, dst)
     path_str = ""
@@ -207,10 +272,11 @@ def print_summary(summary):
     for key, count in summary['c_functions_cnt'].items():
         print(f"{key:<50} {count:<20}")
     print("=" * 80)
+    
 
 def get_violation_info(nodes: list, vio, summary, this_pair_ok):
-
-    def get_call_chain(node, reader):
+    
+    def get_call_full_chain(node, reader):
         call_chain = []
         seq_id = node.seq_id
         while reader.records[node.rank][seq_id].call_depth > 0:
@@ -219,6 +285,30 @@ def get_violation_info(nodes: list, vio, summary, this_pair_ok):
         call_chain.append(reader.records[node.rank][seq_id])
         return call_chain
 
+    def get_call_partial_chain(node, reader):
+        call_chain = []
+        seq_id = node.seq_id
+        added_depths = set()
+        
+        while reader.records[node.rank][seq_id].call_depth > 0:
+            current_record = reader.records[node.rank][seq_id]
+            if current_record.call_depth not in added_depths:
+                call_chain.append(current_record)
+                added_depths.add(current_record.call_depth)
+            seq_id -= 1
+        
+        root_record = reader.records[node.rank][seq_id]
+        if root_record.call_depth not in added_depths:
+            call_chain.append(root_record)
+        
+        return call_chain
+
+    def get_call_chain(node, reader, show_full_chain=False):
+        if show_full_chain:
+            return get_call_full_chain(node=node, reader=reader)
+        else:
+            return get_call_partial_chain(node=node, reader=reader)
+
     def update_function_count(func_id, summary, reader):
         func_name = reader.funcs[func_id]
         summary['c_functions_cnt'][func_name] = summary['c_functions_cnt'].get(func_name, 0) + 1
@@ -226,8 +316,8 @@ def get_violation_info(nodes: list, vio, summary, this_pair_ok):
     def build_call_chain_str(call_chain, reader):
         return "-->".join(reader.funcs[cc.func_id] for cc in call_chain)
 
-    left_call_chain = get_call_chain(nodes[0], vio.reader)
-    right_call_chain = get_call_chain(nodes[1], vio.reader)
+    left_call_chain = get_call_chain(nodes[0], vio.reader, vio.show_full_chain)
+    right_call_chain = get_call_chain(nodes[1], vio.reader, vio.show_full_chain)
     file = vio.reader.records[nodes[0].rank][nodes[0].seq_id].args[0].decode('utf-8')
     if len(left_call_chain) > 0 and len(right_call_chain) > 0:
         summary['c_ranks_cnt'][nodes[0].rank][nodes[1].rank] += 1
@@ -252,6 +342,8 @@ if __name__ == "__main__":
                         default=3, help="1: graph reachibility, 2: transitive closure, 3: vector clock, 4: on-the-fly MPI check")
     parser.add_argument("--show_details", action="store_true", help="Show details of the conflicts")
     parser.add_argument("--show_summary", action="store_true", help="Show summary of the conflicts")
+    parser.add_argument("--show_full_chain", action="store_true", help="Show the full call chain of the conflicts")
+    parser.add_argument("--use_graph", action="store_true", help="Use graph to verify the semantics")
     args = parser.parse_args()
 
     vio = VerifyIO(args)
@@ -285,22 +377,25 @@ if __name__ == "__main__":
     #print('6. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
     print("Step 2. match mpi calls: %.3f secs, mpi edges: %d" %((t2-t1),len(mpi_edges)))
 
-    t1 = time.time()
-    vio.G = VerifyIOGraph(all_nodes, mpi_edges, include_vc=True)
-    t2 = time.time()
-    print("Step 3. build happens-before graph: %.3f secs, nodes: %d" %((t2-t1), vio.G.num_nodes()))
-    #print('7. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
+    if vio.use_graph:
+        t1 = time.time()
+        vio.G = VerifyIOGraph(all_nodes, mpi_edges, include_vc=True)
+        t2 = time.time()
+        print("Step 3. build happens-before graph: %.3f secs, nodes: %d" %((t2-t1), vio.G.num_nodes()))
+        #print('7. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
-    # Correct code (traces) should generate a DAG without any cycles
-    if vio.G.check_cycles(): quit()
+        # Correct code (traces) should generate a DAG without any cycles
+        if vio.G.check_cycles(): quit()
 
-    t1 = time.time()
-    vio.G.run_vector_clock()
-    #vio.G.run_transitive_closure()
-    t2 = time.time()
-    print("Step 4. run vector clock algorithm: %.3f secs" %(t2-t1))
-    #print('8. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
-    # vio.G.plot_graph("vgraph.jpg")
+        t1 = time.time()
+        vio.G.run_vector_clock()
+        #vio.G.run_transitive_closure()
+        t2 = time.time()
+        print("Step 4. run vector clock algorithm: %.3f secs" %(t2-t1))
+        #print('8. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
+        # vio.G.plot_graph("vgraph.jpg")
+    else:
+        mapped_mpi_edges = map_edges(mpi_edges, vio.reader)
 
     t1 = time.time()
     verify_execution_proper_synchronization(conflict_pairs, vio)
