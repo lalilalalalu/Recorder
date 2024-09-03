@@ -43,10 +43,11 @@ def verify_pair_proper_synchronization(n1, n2, vio):
 
     # First check if the I/O operations are protected
     # by locks (e.g., flock() or fcntl())
-    # TODO: this is not fully correct, as we only check
+    # TODO: this is just a wordaround, as we only check
     # for the existence of those calls. We did not check
     # for lock acquire/realse or whther the file name is
-    # the same as the I/O.
+    # the same as the I/O. This workaround works for the
+    # tests we have.
     for r in vio.reader.records[n1.rank][n1.seq_id-5:n1.seq_id+5]:
         func_name = vio.reader.funcs[r.func_id]
         if func_name == "fcntl" or func_name == "flock":
@@ -58,12 +59,11 @@ def verify_pair_proper_synchronization(n1, n2, vio):
         v1 = n1
         v2 = n2
     elif vio.semantics == "Commit":
-        v1 = vio.G.next_po_node(n1, ["fsync", "close", "MPI_File_sync", "MPI_File_close"])
-        # v1 = vio.G.next_hb_node(n1, ["fsync", "close"], rank)
+        v1 = vio.G.next_hb_node(n1, ["fsync", "close", "fclose"], rank)
         v2 = n2
     elif vio.semantics == "Session":
-        v1 = vio.G.next_po_node(n1, ["close", "fsync"])
-        v2 = vio.G.prev_po_node(n2, ["open",  "fsync"])
+        v1 = vio.G.next_po_node(n1, ["close", "fclose", "fsync"])
+        v2 = vio.G.prev_po_node(n2, ["open",  "fopen",  "fsync"])
     elif vio.semantics == "MPI-IO":
         v1 = vio.G.next_po_node(n1, ["MPI_File_close", "MPI_File_sync"])
         v2 = vio.G.prev_po_node(n2, ["MPI_File_open",  "MPI_File_sync"])
