@@ -17,7 +17,7 @@ class VerifyIO:
         self.show_full_chain = args.show_full_chain # whether to show full call chain
         self.reader = None                          # RecorderReader
         self.G = None                               # Happens-before Graph (VerifyIOGraph)
-        self.use_graph = args.use_graph             # whether to use graph for verification
+        self.without_graph = args.without_graph     # whether to use graph for verification
 
 
 def find_next_prev_sync(n1, n2, all_nodes, close_ops, open_ops):
@@ -343,7 +343,7 @@ if __name__ == "__main__":
     parser.add_argument("--show_details", action="store_true", help="Show details of the conflicts")
     parser.add_argument("--show_summary", action="store_true", help="Show summary of the conflicts")
     parser.add_argument("--show_full_chain", action="store_true", help="Show the full call chain of the conflicts")
-    parser.add_argument("--use_graph", action="store_true", help="Use graph to verify the semantics")
+    parser.add_argument("--without_graph", action="store_false", help="Use graph to verify the semantics")
     args = parser.parse_args()
 
     vio = VerifyIO(args)
@@ -377,7 +377,7 @@ if __name__ == "__main__":
     #print('6. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
     print("Step 2. match mpi calls: %.3f secs, mpi edges: %d" %((t2-t1),len(mpi_edges)))
 
-    if vio.use_graph:
+    if vio.without_graph:
         t1 = time.time()
         vio.G = VerifyIOGraph(all_nodes, mpi_edges, include_vc=True)
         t2 = time.time()
