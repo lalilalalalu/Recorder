@@ -184,6 +184,8 @@ def verify_execution_proper_synchronization(conflict_pairs, vio:VerifyIO):
                 and (not verify_pair_proper_synchronization(n2s[rank][0], n1, vio)):
                 total_violations += len(n2s[rank])
                 for n2 in n2s[rank]:
+                    if args.show_summary:
+                        get_violation_info([n1, n2], vio, summary, False)
                     print(f"{vio.semantics} violation: {n1} {n2}")
                 continue
 
