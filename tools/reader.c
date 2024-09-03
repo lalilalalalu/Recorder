@@ -723,7 +723,12 @@ int create_verifyio_record(RecorderReader* reader, Record* r, VerifyIORecord* vi
             strstr(func_name, "read")  ||
             strstr(func_name, "fcntl")) {
             verifyio_record_copy_args(vir, r, 1, 0);
-        } else {
+        } else if (strstr(func_name, "fsync") ||
+                   strstr(func_name, "open")  ||
+                   strstr(func_name, "close")  ||
+                   strstr(func_name, "fopen")  ||
+                   strstr(func_name, "fclose")) {
+            verifyio_record_copy_args(vir, r, 1, 0);
             //included = 0;
         }
     } else {

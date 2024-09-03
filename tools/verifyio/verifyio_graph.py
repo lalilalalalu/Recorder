@@ -57,7 +57,7 @@ class VerifyIOGraph:
                 break
         return target
 
-    # previous (program-order) node of funcs in the sam rank
+    # previous (program-order) node of funcs in the same rank
     def prev_po_node(self, current, funcs):
         index = self.G.nodes[current.graph_key()]['index']
         nodes = self.nodes[current.rank]
