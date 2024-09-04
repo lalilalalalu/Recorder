@@ -58,7 +58,8 @@ def verify_pair_proper_synchronization(n1, n2, vio):
     v1, v2, next_sync_index = None, None, None
 
     if vio.semantics == "POSIX":
-        v1 = n1
+        v1 = n1 
+        next_sync_index = n1.current_po_index(all_nodes)
         v2 = n2
     elif vio.semantics == "Commit":
         if vio.G is None:

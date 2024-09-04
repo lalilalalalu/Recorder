@@ -36,6 +36,12 @@ class VerifyIONode:
         for idx, call in enumerate(all_nodes[self.rank]):
             if call.seq_id > self.seq_id and call.func in funcs:
                 return call, idx
+            
+    def current_po_index(self, all_nodes):
+        for idx, call in enumerate(all_nodes[self.rank]):
+            if call.seq_id == self.seq_id:
+                return idx
+
     
     def prev_po_node(self, all_nodes, funcs):
         for idx, call in enumerate(reversed(all_nodes[self.rank]), start=1):
