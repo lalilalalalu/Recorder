@@ -17,6 +17,28 @@ class VerifyIO:
         self.show_full_chain = args.show_full_chain # whether to show full call chain
         self.reader = None                          # RecorderReader
         self.G = None                               # Happens-before Graph (VerifyIOGraph)
+        self.all_nodes = None                       # Per-rank VerifyIONode list
+
+    def next_po_node(self, n, funcs):
+        if self.G:
+            return vio.G.next_po_node(n, funcs)
+        else:
+            for i in range(n.index+1, len(self.all_nodes[n.rank]), 1):
+                if self.all_nodes[n.rank][i].func in funcs:
+                    return self.all_nodes[n.rank][i]
+
+    def prev_po_node(self, n, funcs):
+        if self.G:
+            return self.G.next_po_node(n, funcs)
+        else:
+            for i in range(n.index-1, 0, -1):
+                if self.all_nodes[n.rank][i].func in funcs:
+                    return self.all_nodes[n.rank][i]
+
+    def next_hb_node(self, n, funcs):
+        if self.G:
+            return self.G.next_hb_node(n, funcs)
+        # TODO: get next hb node withouth graph.
 
 
 """
@@ -58,29 +80,18 @@ def verify_pair_proper_synchronization(n1, n2, vio):
     v1, v2, next_sync_index = None, None, None
 
     if vio.semantics == "POSIX":
-        v1 = n1 
-        next_sync_index = n1.current_po_index(all_nodes)
+        v1 = n1
         v2 = n2
     elif vio.semantics == "Commit":
-        if vio.G is None:
-            v1, next_sync_index = n1.next_po_node(all_nodes, ["fsync", "close", "fclose"])
-        else:
-            v1 = vio.G.next_po_node(n1, ["fsync", "close", "fclose"])
+        v1 = vio.next_po_node(all_nodes, ["fsync", "close", "fclose"])
         v2 = n2
     elif vio.semantics == "Session":
-        if vio.G is None:
-            v1, next_sync_index = n1.next_po_node(all_nodes, ["close", "fclose", "fsync"])
-            v2 = n2.prev_po_node(all_nodes, ["open",  "fopen",  "fsync"])
-        else:
-            v1 = vio.G.next_po_node(n1, ["close", "fclose", "fsync"])
-            v2 = vio.G.prev_po_node(n2, ["open",  "fopen",  "fsync"])
+        v1 = vio.next_po_node(n1, ["close", "fclose", "fsync"])
+        v2 = vio.prev_po_node(n2, ["open",  "fopen",  "fsync"])
     elif vio.semantics == "MPI-IO":
-        if vio.G is None:
-            v1, next_sync_index = n1.next_po_node(all_nodes, ["MPI_File_close", "MPI_File_sync"])
-            v2 = n2.prev_po_node(all_nodes, ["MPI_File_open",  "MPI_File_sync"])
-        else:
-            v1 = vio.G.next_po_node(n1, ["MPI_File_close", "MPI_File_sync"])
-            v2 = vio.G.prev_po_node(n2, ["MPI_File_open",  "MPI_File_sync"])
+        v1 = vio.next_po_node(n1, ["MPI_File_close", "MPI_File_sync"])
+        v2 = vio.prev_po_node(n2, ["MPI_File_open",  "MPI_File_sync"])
+
 
     if (not v1) or (not v2):
         return False
@@ -105,16 +116,13 @@ def verify_pair_proper_synchronization(n1, n2, vio):
     # Algorithm 4: On-the-fly MPI check
     if vio.algorithm == 4:
         # O(N) where N is remaining calls after next_sync
-        for next_call in all_nodes[n1.rank][next_sync_index+1:]:
-            edge = mapped_mpi_edges[n1.rank].get(next_call.seq_id)
-            if edge:
-                if edge[v2.rank]:
-                    if edge[v2.rank].seq_id <= v2.seq_id:
-                        return True
-                    else:
-                        return False
+        for next_call in vio.all_nodes[v1.rank][v1.index+1:]:
+            mpi_edge = mapped_mpi_edges[v1.rank].get(next_call.seq_id)
+            if mpi_edge and mpi_edge[v2.rank]:
+                if mpi_edge[v2.rank].seq_id < v2.seq_id:
+                    return True
                 else:
-                    continue
+                    return False
         return False
 
 
@@ -355,10 +363,14 @@ if __name__ == "__main__":
     print("Step 1. read trace records and conflicts time: %.3f secs" %(t2-t1))
     #print('4. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
-    all_nodes = mpi_nodes
+    vio.all_nodes = mpi_nodes
     for rank in range(vio.reader.nprocs):
-        all_nodes[rank] += io_nodes[rank]
-        all_nodes[rank] = sorted(all_nodes[rank], key=lambda x: x.seq_id)
+        vio.all_nodes[rank] += io_nodes[rank]
+        vio.all_nodes[rank] = sorted(vio.all_nodes[rank], key=lambda x: x.seq_id)
+        # Set the index of each node with respect to all local VerifyIONode 
+        # this index will be used later to accelerate the next_po_node/prev_po_node
+        # operations
+        for i, n in enumerate(vio.all_nodes[rank]): n.index = i
     #print('5. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
     # get mpi calls and matched edges
@@ -370,7 +382,7 @@ if __name__ == "__main__":
 
     if vio.algorithm !=4:
         t1 = time.time()
-        vio.G = VerifyIOGraph(all_nodes, mpi_edges, include_vc=True)
+        vio.G = VerifyIOGraph(vio.all_nodes, mpi_edges, include_vc=True)
         t2 = time.time()
         print("Step 3. build happens-before graph: %.3f secs, nodes: %d" %((t2-t1), vio.G.num_nodes()))
         #print('7. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
