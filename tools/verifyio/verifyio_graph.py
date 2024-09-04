@@ -31,6 +31,16 @@ class VerifyIONode:
                 return "Rank %d: %dth %s(%s)" %(self.rank, self.seq_id, self.func, self.mpifh)
         else:
             return "Rank %d: %dth %s" %(self.rank, self.seq_id, self.func)
+        
+    def next_po_node(self, all_nodes, funcs):
+        for idx, call in enumerate(all_nodes[self.rank]):
+            if call.seq_id > self.seq_id and call.func in funcs:
+                return call, idx
+    
+    def prev_po_node(self, all_nodes, funcs):
+        for idx, call in enumerate(reversed(all_nodes[self.rank]), start=1):
+            if call.seq_id < self.seq_id and call.func in funcs:
+                return call
 
 
 '''

@@ -17,22 +17,6 @@ class VerifyIO:
         self.show_full_chain = args.show_full_chain # whether to show full call chain
         self.reader = None                          # RecorderReader
         self.G = None                               # Happens-before Graph (VerifyIOGraph)
-        self.without_graph = args.without_graph     # whether to use graph for verification
-
-
-def find_next_prev_sync(n1, n2, all_nodes, close_ops, open_ops):
-    v1, v2, next_sync_index = None, None, None
-    for idx, call in enumerate(all_nodes[n1.rank]):
-        if call.seq_id > n1.seq_id and call.func in close_ops:
-            v1 = call
-            next_sync_index = idx
-            break
-
-    for idx, call in enumerate(reversed(all_nodes[n2.rank]), start=1):
-        if call.seq_id < n2.seq_id and call.func in open_ops:
-            v2 = call
-            break
-    return v1, v2, next_sync_index
 
 
 """
@@ -77,17 +61,22 @@ def verify_pair_proper_synchronization(n1, n2, vio):
         v1 = n1
         v2 = n2
     elif vio.semantics == "Commit":
-        v1 = vio.G.next_hb_node(n1, ["fsync", "close", "fclose"], rank)
+        if vio.G is None:
+            v1, next_sync_index = n1.next_po_node(all_nodes, ["fsync", "close", "fclose"])
+        else:
+            v1 = vio.G.next_po_node(n1, ["fsync", "close", "fclose"])
         v2 = n2
     elif vio.semantics == "Session":
         if vio.G is None:
-            v1, v2, next_sync_index = find_next_prev_sync(n1, n2, all_nodes, ["close", "fclose", "fsync"], ["open",  "fopen",  "fsync"])
+            v1, next_sync_index = n1.next_po_node(all_nodes, ["close", "fclose", "fsync"])
+            v2 = n2.prev_po_node(all_nodes, ["open",  "fopen",  "fsync"])
         else:
             v1 = vio.G.next_po_node(n1, ["close", "fclose", "fsync"])
             v2 = vio.G.prev_po_node(n2, ["open",  "fopen",  "fsync"])
     elif vio.semantics == "MPI-IO":
         if vio.G is None:
-            v1, v2, next_sync_index = find_next_prev_sync(n1, n2, all_nodes, ["MPI_File_close", "MPI_File_sync"], ["MPI_File_open",  "MPI_File_sync"])
+            v1, next_sync_index = n1.next_po_node(all_nodes, ["MPI_File_close", "MPI_File_sync"])
+            v2 = n2.prev_po_node(all_nodes, ["MPI_File_open",  "MPI_File_sync"])
         else:
             v1 = vio.G.next_po_node(n1, ["MPI_File_close", "MPI_File_sync"])
             v2 = vio.G.prev_po_node(n2, ["MPI_File_open",  "MPI_File_sync"])
@@ -345,7 +334,6 @@ if __name__ == "__main__":
     parser.add_argument("--show_details", action="store_true", help="Show details of the conflicts")
     parser.add_argument("--show_summary", action="store_true", help="Show summary of the conflicts")
     parser.add_argument("--show_full_chain", action="store_true", help="Show the full call chain of the conflicts")
-    parser.add_argument("--without_graph", action="store_false", help="Use graph to verify the semantics")
     args = parser.parse_args()
 
     vio = VerifyIO(args)
@@ -379,7 +367,7 @@ if __name__ == "__main__":
     #print('6. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
     print("Step 2. match mpi calls: %.3f secs, mpi edges: %d" %((t2-t1),len(mpi_edges)))
 
-    if vio.without_graph:
+    if vio.algorithm !=4:
         t1 = time.time()
         vio.G = VerifyIOGraph(all_nodes, mpi_edges, include_vc=True)
         t2 = time.time()
