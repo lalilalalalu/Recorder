@@ -29,7 +29,7 @@ class VerifyIO:
 
     def prev_po_node(self, n, funcs):
         if self.G:
-            return self.G.next_po_node(n, funcs)
+            return self.G.prev_po_node(n, funcs)
         else:
             for i in range(n.index-1, 0, -1):
                 if self.all_nodes[n.rank][i].func in funcs:
@@ -117,7 +117,7 @@ def verify_pair_proper_synchronization(n1, n2, vio):
 
     # Algorithm 4: On-the-fly MPI check
     if vio.algorithm == 4:
-        # O(N) where N is remaining calls after next_sync
+        # O(N) where N is remaining calls after v1
         for next_call in vio.all_nodes[v1.rank][v1.index+1:]:
             mpi_edge = mapped_mpi_edges[v1.rank].get(next_call.seq_id)
             if mpi_edge and mpi_edge[v2.rank]:
