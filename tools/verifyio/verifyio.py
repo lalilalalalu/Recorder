@@ -77,13 +77,13 @@ def verify_pair_proper_synchronization(n1, n2, vio):
         if func_name == "fcntl" or func_name == "flock":
             return True
 
-    v1, v2, next_sync_index = None, None, None
+    v1, v2 = None, None
 
     if vio.semantics == "POSIX":
         v1 = n1
         v2 = n2
     elif vio.semantics == "Commit":
-        v1 = vio.next_po_node(all_nodes, ["fsync", "close", "fclose"])
+        v1 = vio.next_po_node(n1, ["fsync", "close", "fclose"])
         v2 = n2
     elif vio.semantics == "Session":
         v1 = vio.next_po_node(n1, ["close", "fclose", "fsync"])
@@ -93,8 +93,8 @@ def verify_pair_proper_synchronization(n1, n2, vio):
         v2 = vio.prev_po_node(n2, ["MPI_File_open",  "MPI_File_sync"])
 
     elif vio.semantics == "Custom":
-        custom_semantic()
-
+        v1, v2 = custom_semantic(str="c1:+1[MPI_File_close, MPI_File_sync] & c2:-1[MPI_File_open, MPI_File_sync]", n1=n1, n2=n2)
+        
     if (not v1) or (not v2):
         return False
 
@@ -347,7 +347,7 @@ def custom_semantic(str="c1:+1[MPI_File_close, MPI_File_sync] & c2:-1[MPI_File_o
         
     def get_node_and_idx_by_offset(node, offset, syncs, all_nodes):
         if offset == 0:
-            return node, node.current_po_index(all_nodes)
+            return node
         elif offset > 0:
             return node.next_po_node(all_nodes, syncs)
         else:
@@ -359,8 +359,8 @@ def custom_semantic(str="c1:+1[MPI_File_close, MPI_File_sync] & c2:-1[MPI_File_o
     c1_sync_arr = c1.split("[")[1].split("]")[0].split(",")
     c2_sync_arr = c2.split("[")[1].split("]")[0].split(",")
     
-    v1, v1_index = get_node_and_idx_by_offset(n1, c1_offset, c1_sync_arr, all_nodes)
-    v2, v2_index = get_node_and_idx_by_offset(n2, c2_offset, c2_sync_arr, all_nodes)
+    v1 = get_node_and_idx_by_offset(n1, c1_offset, c1_sync_arr)
+    v2 = get_node_and_idx_by_offset(n2, c2_offset, c2_sync_arr)
     print("hi")
 
 
