@@ -81,6 +81,8 @@ def verify_pair_proper_synchronization(n1, n2, vio):
         else:
             v1 = vio.G.next_po_node(n1, ["MPI_File_close", "MPI_File_sync"])
             v2 = vio.G.prev_po_node(n2, ["MPI_File_open",  "MPI_File_sync"])
+    elif vio.semantics == "Custom":
+        custom_semantic()
 
     if (not v1) or (not v2):
         return False
@@ -324,8 +326,39 @@ def get_violation_info(nodes: list, vio, summary, this_pair_ok):
             print(f"{nodes[0]}: {l_str} <--> {nodes[1]}: {r_str} on file {file}, properly synchronized: {this_pair_ok}")
 
 
-if __name__ == "__main__":
 
+def custom_semantic(str="c1:+1[MPI_File_close, MPI_File_sync] & c2:-1[MPI_File_open, MPI_File_sync]", n1:VerifyIO =None, n2: VerifyIO = None):
+
+    def get_offset(str):
+        if "+" in str:
+            return int(str[1:])
+        elif "-" in str:
+            return int(str)
+        else:
+            return 0
+        
+    def get_node_and_idx_by_offset(node, offset, syncs, all_nodes):
+        if offset == 0:
+            return node, node.current_po_index(all_nodes)
+        elif offset > 0:
+            return node.next_po_node(all_nodes, syncs)
+        else:
+            return node.prev_po_node(all_nodes, syncs)
+        
+    c1, c2 = str.split("&")
+    c1_offset = get_offset(c1.split(":")[1].split("[")[0])
+    c2_offset = get_offset(c2.split(":")[1].split("[")[0])
+    c1_sync_arr = c1.split("[")[1].split("]")[0].split(",")
+    c2_sync_arr = c2.split("[")[1].split("]")[0].split(",")
+    
+    v1, v1_index = get_node_and_idx_by_offset(n1, c1_offset, c1_sync_arr, all_nodes)
+    v2, v2_index = get_node_and_idx_by_offset(n2, c2_offset, c2_sync_arr, all_nodes)
+    print("hi")
+
+
+
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("traces_folder")
     parser.add_argument("--semantics", type=str, choices=["POSIX", "MPI-IO", "Commit", "Session"],
