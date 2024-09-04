@@ -117,7 +117,6 @@ def verify_pair_proper_synchronization(n1, n2, vio):
         # O(N) where N is remaining calls after v1
         for next_mpi_call in vio.all_nodes[v1.rank][v1.index+1:]:
             mpi_edge = mapped_mpi_edges[v1.rank].get(next_mpi_call.seq_id)
-            if mpi_edge and (v1.rank == 1):
             if mpi_edge and mpi_edge[v2.rank]:
                 if mpi_edge[v2.rank].seq_id < v2.seq_id:
                     return True
