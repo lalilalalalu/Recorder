@@ -3,6 +3,7 @@ from recorder_reader import RecorderReader
 from read_nodes import read_mpi_nodes, read_io_nodes
 from match_mpi import match_mpi_calls
 from verifyio_graph import VerifyIONode, VerifyIOGraph, MPICallType
+from typing import Union, List, Any
 
 """
 A data structure to make it easier
@@ -211,10 +212,31 @@ def verify_execution_proper_synchronization(conflict_pairs, vio:VerifyIO):
     print("Total conflict pairs: %d" %total_conflicts)
 
 
-# A helper function to map the mpi edges to a 3D data structure to reduce the search time without changing the original mpi_edges
+# A helper function to map the mpi edges to a 3D data structure 
+# to reduce the search time without changing the original mpi_edges
 def map_edges(mpi_edges, reader):
+
+    def to_list(x: Union[Any, List[Any]]) -> List[Any]:
+        return x if isinstance(x, list) else [x]
+
     num_ranks = reader.nprocs
     edges = [{} for _ in range(num_ranks)]
+
+    for e in mpi_edges:
+        if e.call_type == MPICallType.POINT_TO_POINT:
+            if e.head.seq_id not in edges[e.head.rank]:
+                edges[e.head.rank][e.head.seq_id] = [None] * num_ranks
+                edges[e.head.rank][e.head.seq_id][e.tail.rank] = e.tail
+        else: # all collective calls
+            head_list = to_list(e.head)
+            tail_list = to_list(e.tail)
+            calls = list(set(head_list).union(tail_list))
+            for c in calls:
+                edges[c.rank][c.seq_id] = [None] * num_ranks
+                for t in calls:
+                    edges[c.rank][c.seq_id][t.rank] = t
+    return edges
+
 
     for e in mpi_edges:
         if e.call_type == MPICallType.ALL_TO_ALL:
