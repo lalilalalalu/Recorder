@@ -1,8 +1,8 @@
 import argparse, time, sys
 from recorder_reader import RecorderReader
 from read_nodes import read_mpi_nodes, read_io_nodes
-from match_mpi import match_mpi_calls
-from verifyio_graph import VerifyIONode, VerifyIOGraph, MPICallType
+from match_mpi import match_mpi_calls, MPICallType
+from verifyio_graph import VerifyIONode, VerifyIOGraph
 
 """
 A data structure to make it easier
@@ -23,6 +23,8 @@ class VerifyIO:
         if self.G:
             return vio.G.next_po_node(n, funcs)
         else:
+            if not funcs:
+                return self.all_nodes[n.rank][n.index+1]
             for i in range(n.index+1, len(self.all_nodes[n.rank]), 1):
                 if self.all_nodes[n.rank][i].func in funcs:
                     return self.all_nodes[n.rank][i]
@@ -31,6 +33,8 @@ class VerifyIO:
         if self.G:
             return self.G.prev_po_node(n, funcs)
         else:
+            if not funcs:
+                return self.all_nodes[n.rank][n.index-1]
             for i in range(n.index-1, 0, -1):
                 if self.all_nodes[n.rank][i].func in funcs:
                     return self.all_nodes[n.rank][i]
@@ -83,14 +87,23 @@ def verify_pair_proper_synchronization(n1, n2, vio):
         v1 = n1
         v2 = n2
     elif vio.semantics == "Commit":
-        v1 = vio.next_po_node(all_nodes, ["fsync", "close", "fclose"])
+        v1 = vio.next_po_node(n1, ["fsync", "close", "fclose"])
         v2 = n2
     elif vio.semantics == "Session":
         v1 = vio.next_po_node(n1, ["close", "fclose", "fsync"])
         v2 = vio.prev_po_node(n2, ["open",  "fopen",  "fsync"])
     elif vio.semantics == "MPI-IO":
-        v1 = vio.next_po_node(n1, ["MPI_File_close", "MPI_File_sync"])
-        v2 = vio.prev_po_node(n2, ["MPI_File_open",  "MPI_File_sync"])
+        next_sync = vio.next_po_node(n1, ["MPI_File_close", "MPI_File_sync"])
+        prev_sync = vio.prev_po_node(n2, ["MPI_File_open",  "MPI_File_sync"])
+        if (not next_sync) or (not prev_sync): return False
+        if vio.algorithm == 4:
+            v1 = next_sync
+        else:
+            # now we have two syncs
+            # check for the "barrier" of sync-barr-sync
+            # pass in funcs=None to get the immediate next/prev po node.
+            v1 = vio.next_po_node(next_sync, None)
+        v2 = prev_sync
 
     if (not v1) or (not v2):
         return False
@@ -131,8 +144,8 @@ and verify if each conflict pair is properly synchornized for
 the given consistency semantics
 
  - conflict_pairs: list of (n1, n2s)
-    n1: conflicting I/O operation (VerifyIONode)
-    n2s: list of I/O operations conflicting with n1.
+    n1:  seq_id of conflicting I/O operation
+    n2s: list of seq id of I/O operations conflicting with n1.
 """
 def verify_execution_proper_synchronization(conflict_pairs, vio:VerifyIO):
 
@@ -366,9 +379,8 @@ if __name__ == "__main__":
     for rank in range(vio.reader.nprocs):
         vio.all_nodes[rank] += io_nodes[rank]
         vio.all_nodes[rank] = sorted(vio.all_nodes[rank], key=lambda x: x.seq_id)
-        # Set the index of each node with respect to all local VerifyIONode 
-        # this index will be used later to accelerate the next_po_node/prev_po_node
-        # operations
+        # Set the index of each node with respect to per-rank VerifyIONode list
+        # this index will be used later to accelerate next_po_node/prev_po_node
         for i, n in enumerate(vio.all_nodes[rank]): n.index = i
     #print('5. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 

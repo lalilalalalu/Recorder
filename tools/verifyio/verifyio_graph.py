@@ -1,14 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
-from enum import Enum
 import networkx as nx
-
-class MPICallType(Enum):
-    ALL_TO_ALL     = 1
-    ONE_TO_MANY    = 2
-    MANY_TO_ONE    = 3
-    POINT_TO_POINT = 4
-    OTHER          = 5  # e.g., wait/test calls
 
 class VerifyIONode:
     def __init__(self, rank, seq_id, func, fd = -1, mpifh = None):
@@ -54,6 +46,8 @@ class VerifyIOGraph:
     # next (program-order) node of funcs in the sam rank
     def next_po_node(self, current, funcs):
         nodes = self.nodes[current.rank]
+        if not funcs:
+            return nodes[current.index+1]
         target = None
         for i in range(current.index+1, len(nodes)):
             if nodes[i].func in funcs:
@@ -64,6 +58,8 @@ class VerifyIOGraph:
     # previous (program-order) node of funcs in the same rank
     def prev_po_node(self, current, funcs):
         nodes = self.nodes[current.rank]
+        if not funcs:
+            return nodes[current.index-1]
         target = None
         for i in range(current.index-1, 0, -1):
             if nodes[i].func in funcs:
@@ -170,17 +166,15 @@ class VerifyIOGraph:
         # to add edges of matching MPI calls
         ghost_node_count = 0
         for edge in mpi_edges:
-            head, tail = edge.head, edge.tail
-            # all-to-all
-            # TODO is there a many-to-many MPI call that
-            # different senders and receivers?
-            # for now we assume head == tail
-            if edge.call_type == MPICallType.ALL_TO_ALL:
-                if len(head) <= 1: continue
+
+            mpi_calls = edge.get_all_involved_calls()
+            if len(mpi_calls) <= 1: continue
+
+            for mpi_call in mpi_calls:
                 # Add a ghost node and connect all predecessors
                 # and successors from all ranks. This prvents the circle
                 ghost_node = VerifyIONode(rank=nprocs, seq_id=ghost_node_count, func="ghost")
-                for h in head:
+                for h in mpi_calls:
                     # use list() to make a copy to avoid the runtime
                     # error of "dictionary size changed during iteration"
                     try:
@@ -197,7 +191,7 @@ class VerifyIOGraph:
                         # (e.g., the last node in the graph)
                         pass
 
-                for h in head:
+                for h in mpi_calls:
                     self.add_edge(h, ghost_node)
 
                 vc = [0] * (nprocs + 1)
@@ -205,33 +199,15 @@ class VerifyIOGraph:
                 self.G.nodes[ghost_node.graph_key()]['vc'] = vc
                 ghost_node_count += 1
 
-            # many-to-one, e.g., reduce
-            elif edge.call_type == MPICallType.MANY_TO_ONE:
-                #print(head, tail)
-                for h in head:
-                    self.add_edge(h, tail)
-            # one-to-many, e.g., bcast
-            elif edge.call_type == MPICallType.ONE_TO_MANY:
-                #print(head, tail)
-                for t in tail:
-                    self.add_edge(head, t)
-            # point-to-point, i.e., send-recv
-            elif edge.call_type == MPICallType.POINT_TO_POINT:
-                self.add_edge(head, tail)
-
-        # Transitive clousre is too slow for large graphs
-        #print("Generate transitive closure")
-        #tc = nx.transitive_closure(self.G)
-
     # Detect cycles of the graph
     # correct code should contain no cycles.
     # incorrect code, e.g., with unmatched collective calls
     # may have cycles
     # e.g., pnetcdf/test/testcases/test-varm.c
-    # it uses ncmpi_wait() call, which may result in 
+    # it uses ncmpi_wait() call, which may result in
     # rank0 calling MPI_File_write_at_all(), and
     # rank1 calling MPI_File_write_all()
-    # 
+    #
     # Our verification algorithm assumes the graph
     # has no code, so we need do this check first.
     def check_cycles(self):
