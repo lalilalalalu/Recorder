@@ -233,18 +233,18 @@ def map_edges(mpi_edges, reader):
     edges = [{} for _ in range(num_ranks)]
 
     for e in mpi_edges:
-        if e.call_type == MPICallType.POINT_TO_POINT:
-            if e.head.seq_id not in edges[e.head.rank]:
-                edges[e.head.rank][e.head.seq_id] = [None] * num_ranks
-                edges[e.head.rank][e.head.seq_id][e.tail.rank] = e.tail
-        else: # all collective calls
-            head_list = to_list(e.head)
-            tail_list = to_list(e.tail)
-            calls = list(set(head_list).union(tail_list))
-            for c in calls:
-                edges[c.rank][c.seq_id] = [None] * num_ranks
-                for t in calls:
-                    edges[c.rank][c.seq_id][t.rank] = t
+        # if e.call_type == MPICallType.POINT_TO_POINT:
+        #     if e.head.seq_id not in edges[e.head.rank]:
+        #         edges[e.head.rank][e.head.seq_id] = [None] * num_ranks
+        #         edges[e.head.rank][e.head.seq_id][e.tail.rank] = e.tail
+        # else: # all collective calls
+        head_list = to_list(e.head)
+        tail_list = to_list(e.tail)
+        calls = list(set(head_list).union(tail_list))
+        for c in calls:
+            edges[c.rank][c.seq_id] = [None] * num_ranks
+            for t in calls:
+                edges[c.rank][c.seq_id][t.rank] = t
     return edges
 
 
