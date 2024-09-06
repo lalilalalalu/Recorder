@@ -1,10 +1,18 @@
 import sys
 from itertools import repeat
-from verifyio_graph import VerifyIONode, MPICallType
+from enum import Enum
+from verifyio_graph import VerifyIONode
 import read_nodes
 
 ANY_SOURCE = -1
 ANY_TAG = -2
+
+class MPICallType(Enum):
+    ALL_TO_ALL     = 1
+    ONE_TO_MANY    = 2
+    MANY_TO_ONE    = 3
+    POINT_TO_POINT = 4
+    OTHER          = 5  # e.g., wait/test calls
 
 class MPIEdge:
     def __init__(self, call_type, head=None, tail=None):
@@ -23,6 +31,30 @@ class MPIEdge:
             self.head = head        # list/instance of VerifyIONode
         if tail:
             self.tail = tail        # list/instance of VerifyIONode
+
+    # Although its quite useful to get the edge (head -> tail)
+    # to represent the order between MPI calls, it is acutally
+    # not needed for our I/O verification purposes.
+    #
+    # We need the MPI calls to establish the temporal order
+    # between conflicting I/O calls,
+    # e.g., P1: write -> send; P2: recv -> read
+    # send/recv gives order bwteen write and read.
+    # But we really care whther send finishes-/happens-before recv
+    # we can simply treat those two as a fence that gives order
+    # to write and read.
+    # That's why we provide this funciton, so the callers
+    # can use them (as a fence) when building the
+    # happens-before graph for I/O oeprations.
+    def get_all_involved_calls(self):
+        if self.call_type is MPICallType.ALL_TO_ALL:
+            return self.head
+        if self.call_type is MPICallType.ONE_TO_MANY:
+            return [self.head]+self.tail
+        if self.call_type is MPICallType.MANY_TO_ONE:
+            return self.head+[self.tail]
+        if self.call_type is MPICallType.POINT_TO_POINT:
+            return [self.head]+[self.tail]
 
 class MPICall:
     def __init__(self, rank, seq_id, func, **kwargs):
@@ -58,7 +90,7 @@ class MPIMatchHelper:
 
         self.recv_calls      = [[[] for i in repeat(None, self.num_ranks)] for j in repeat(None, self.num_ranks)]
         self.send_calls      = [0 for i in repeat(None, self.num_ranks)]
-        self.wait_test_calls = [[] for i in repeat(None, self.num_ranks)]
+        self.wait_test_calls = [{} for i in repeat(None, self.num_ranks)]
         self.coll_calls      = [{} for i in repeat(None, self.num_ranks)]
 
         self.send_func_names   = ['MPI_Send','MPI_Ssend', 'MPI_Issend', 'MPI_Isend','MPI_Sendrecv']
@@ -118,8 +150,8 @@ class MPIMatchHelper:
         func_args_map = {
             'MPI_Send':     ['dst', 'stag', 'comm'],
             'MPI_Ssend':    ['dst', 'stag', 'comm'],
-            'MPI_Issend':   ['dst', 'stag', 'comm'],
-            'MPI_Isend':    ['dst', 'stag', 'comm'],
+            'MPI_Issend':   ['dst', 'stag', 'comm', 'req'],
+            'MPI_Isend':    ['dst', 'stag', 'comm', 'req'],
             'MPI_Recv':     ['src', 'rtag', 'comm'],
             'MPI_Sendrecv': ['src', 'dst', 'stag', 'rtag', 'comm'],
             'MPI_Irecv':    ['src', 'rtag', 'comm', 'req'],
@@ -205,7 +237,11 @@ class MPIMatchHelper:
                     global_src = self.local2global(mpi_call.comm, mpi_call.src)
                     self.recv_calls[rank][global_src].append(index)
                 if self.is_wait_test_call(func_name):
-                    self.wait_test_calls[rank].append(index)
+                    for req in mpi_call.reqs:
+                        if req in self.wait_test_calls[rank]:
+                            self.wait_test_calls[rank][req].append(mpi_call)
+                        else:
+                            self.wait_test_calls[rank][req] = [mpi_call]
 
 
     def __generate_translation_table(self):
@@ -237,52 +273,46 @@ class MPIMatchHelper:
     def local2global(self, comm, local_rank):
         return self.translate_table[comm][local_rank]
 
+# nb_call: the nonblocking call to match
+def find_wait_test_call(nb_call, helper, need_match_src_tag=False, src=0, tag=0):
 
-def find_wait_test_call(req, rank, helper, need_match_src_tag=False, src=0, tag=0):
+    # None of wait/test calls have a matching req id
+    # this is typically impossible
+    if nb_call.req not in helper.wait_test_calls[nb_call.rank]:
+        print(f"Warning: no matching wait/test call for rank {nb_call.rank} req {nb_call.req}")
+        return None
 
-    found = None
+    # Some of wait/test calls have a matching req id
+    # however, all those calls have already been matched
+    # and removed, which is also unlikely
+    wt_calls = helper.wait_test_calls[nb_call.rank][nb_call.req]
+    if len(wt_calls) == 0:
+        print("Warning: matching wait/test calls have been removed")
+        return None
 
-    # We don't check the flag here
-    # We are certain that calls in wait_test_calls all have completed
-    # rquests
-    for idx in helper.wait_test_calls[rank]:
-        wait_call = helper.all_mpi_calls[rank][idx]
-        func = wait_call.func
-
-        if (func == 'MPI_Wait' or func == 'MPI_Waitall') or \
-           (func == 'MPI_Test' or func == 'MPI_Testall') :
-            if req in wait_call.reqs:
-                if need_match_src_tag:
-                    if src==wait_call.src and tag==wait_call.rtag:
-                        found = wait_call
-                else:
-                    found = wait_call
-
-                if found:
-                    wait_call.reqs.remove(req)
-                    if(len(wait_call.reqs) == 0):
-                        helper.wait_test_calls[rank].remove(idx)
+    # There may be multiple wait/test calls have 
+    # the same req id, because MPI implementation
+    # is allowed to reuse MPI_Request id.
+    # We need to make sure the matching wait/test
+    # happens-after (they are on same rank) the 
+    # non-blocking call
+    wt_call_idx = -1
+    for i in range(len(wt_calls)):
+        wt_call = wt_calls[i]
+        if wt_call.seq_id > nb_call.seq_id:
+            # TODO we don't have src/tag in wt_call now
+            if need_match_src_tag :
+                if src==wt_call.src and tag==wt_call.tag:
+                    wt_call_idx = i
                     break
+            else:
+                wt_call_idx = i
+                break
 
-        elif func == 'MPI_Waitany' or func == 'MPI_Testany':
-            if req in wait_call.reqs:
-                inx = wait_call.reqs.index(req)
-                if str(inx) in wait_call.tindx:
-                    found = wait_call
-                    helper.wait_test_calls[rank].remove(idx)
-                    break
+    if wt_call_idx != -1:
+        return wt_calls.pop(wt_call_idx)
 
-        elif func == 'MPI_Waitsome' or func == 'MPI_Testsome':
-            if req in wait_call.reqs:
-                inx = wait_call.reqs.index(req)
-                if str(inx) in wait_call.tindx:
-                    found = wait_call
-                    wait_call.reqs.remove(req)
-                    wait_call.tindx.remove(str(inx))
-                    if len(wait_call.tindx) == 0:
-                        helper.wait_test_calls[rank].remove(idx)
-                    break
-    return found
+    return None
 
 
 def match_collective(mpi_call, helper):
@@ -330,7 +360,7 @@ def match_collective(mpi_call, helper):
         if mpi_call.is_blocking_call():
             add_nodes_to_edge(edge, coll_call)
         else:
-            wait_call = find_wait_test_call(coll_call.req, rank, helper)
+            wait_call = find_wait_test_call(coll_call, helper)
             if wait_call:
                 add_nodes_to_edge(edge, wait_call)
 
@@ -350,8 +380,25 @@ def match_collective(mpi_call, helper):
 
 def match_pt2pt(send_call, helper):
 
-    head_node = VerifyIONode(send_call.rank, send_call.seq_id, send_call.func)
+    head_node = None
     tail_node = None
+
+    head_node = VerifyIONode(send_call.rank, send_call.seq_id, send_call.func)
+
+    # TODO: for non-blocking send/recv on both side, we actually
+    # should generate two edges:
+    # Edge 1: Ri-Isend --> Rj-Wait
+    # Edge 2: Rj-Irecv --> Ri-Wait
+    # Currently we return only Edge 1.
+    '''
+    if send_call.is_blocking_call():
+        head_node = VerifyIONode(send_call.rank, send_call.seq_id, send_call.func)
+    else:
+        wt_call = find_wait_test_call(send_call, helper)
+        if wt_call:
+            head_node = VerifyIONode(wt_call.rank, wt_call.seq_id, wt_call.func)
+        print(send_call.seq_id, send_call.rank, send_call.func, head_node)
+    '''
 
     comm = send_call.comm
     global_dst = helper.local2global(comm, send_call.dst)
@@ -373,9 +420,9 @@ def match_pt2pt(send_call, helper):
                 tail_node = VerifyIONode(recv_call.rank, recv_call.seq_id, recv_call.func)
             else:
                 if recv_call.rtag == ANY_TAG or global_src == ANY_SOURCE:
-                    wt_call = find_wait_test_call(recv_call.req, global_dst, helper, True, send_call.rank, send_call.stag)
+                    wt_call = find_wait_test_call(recv_call, helper, True, send_call.rank, send_call.stag)
                 else:
-                    wt_call = find_wait_test_call(recv_call.req, global_dst, helper)
+                    wt_call = find_wait_test_call(recv_call, helper)
                 if wt_call:
                     recv_call.matched = True
                     tail_node = VerifyIONode(wt_call.rank, wt_call.seq_id, wt_call.func)

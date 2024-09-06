@@ -24,9 +24,11 @@ struct gotcha_binding_t posix_wrap_actions [] = {
     GOTCHA_WRAP_ACTION(pwrite64),
     GOTCHA_WRAP_ACTION(readv),
     GOTCHA_WRAP_ACTION(writev),
+    /*
     GOTCHA_WRAP_ACTION(mmap),
     GOTCHA_WRAP_ACTION(mmap64),
     GOTCHA_WRAP_ACTION(msync),
+    */
     GOTCHA_WRAP_ACTION(fopen),
     GOTCHA_WRAP_ACTION(fopen64),
     GOTCHA_WRAP_ACTION(fclose),

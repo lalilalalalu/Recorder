@@ -104,5 +104,9 @@ install
 .idea/
 /cmake-build-debug/
 
+# IDE-specific
+.idea/
+/cmake-build-debug/
+
 # clangd database
 compile_commands.json

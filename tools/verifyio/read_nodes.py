@@ -24,6 +24,10 @@ accepted_mpi_funcs = [
  'MPI_Cart_sub'
 ]
 
+accepted_meta_funcs = [
+ 'fsync', 'open', 'fopen', 'close', 'fclose'
+]
+
 def read_mpi_nodes(reader):
 
     mpi_nodes = [[] for i in repeat(None, reader.nprocs)]
@@ -41,7 +45,22 @@ def read_mpi_nodes(reader):
                 mpi_nodes[rank].append(mpi_node)
 
     return mpi_nodes
-        
+
+def read_metadata_io_nodes(reader):
+    metadata_io_nodes = [[] for i in repeat(None, reader.nprocs)]
+
+    func_list = reader.funcs
+    for rank in range(reader.nprocs):
+        records = reader.records[rank]
+        for seq_id in range(reader.num_records[rank]):
+            func = func_list[records[seq_id].func_id]
+            if func in accepted_meta_funcs:
+                fh = records[seq_id].args[0].decode('utf-8')
+                metadata_io_node = VerifyIONode(rank, seq_id, func, -1, fh)
+                metadata_io_nodes[rank].append(metadata_io_node)
+
+    return metadata_io_nodes
+
 
 '''
 Read confliciing pairs from a file
@@ -108,5 +127,11 @@ def read_io_nodes(reader, path):
         # pairs.
         #if len(pairs) >= 1000:
         #    break;
+
+    # Include all meatadata records, e.g., open/close/fsync
+    # they are needed for verifying session/commit semantics
+    for rank in range(reader.nprocs):
+        metadata_nodes = read_metadata_io_nodes(reader)
+        io_nodes[rank] += metadata_nodes[rank]
 
     return io_nodes, pairs
