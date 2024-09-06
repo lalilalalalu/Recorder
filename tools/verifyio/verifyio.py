@@ -1,9 +1,8 @@
 import argparse, time, sys
 from recorder_reader import RecorderReader
 from read_nodes import read_verifyio_nodes_and_conflicts
-from match_mpi import match_mpi_calls, MPICallType
+from match_mpi import match_mpi_calls
 from verifyio_graph import VerifyIONode, VerifyIOGraph
-from typing import List, Any, Union
 
 """
 A data structure to make it easier
@@ -225,22 +224,11 @@ def verify_execution_proper_synchronization(conflict_pairs, vio:VerifyIO):
 # A helper function to map the mpi edges to a 3D data structure 
 # to reduce the search time without changing the original mpi_edges
 def map_edges(mpi_edges, reader):
-
-    def to_list(x: Union[Any, List[Any]]) -> List[Any]:
-        return x if isinstance(x, list) else [x]
-
     num_ranks = reader.nprocs
     edges = [{} for _ in range(num_ranks)]
 
     for e in mpi_edges:
-        # if e.call_type == MPICallType.POINT_TO_POINT:
-        #     if e.head.seq_id not in edges[e.head.rank]:
-        #         edges[e.head.rank][e.head.seq_id] = [None] * num_ranks
-        #         edges[e.head.rank][e.head.seq_id][e.tail.rank] = e.tail
-        # else: # all collective calls
-        head_list = to_list(e.head)
-        tail_list = to_list(e.tail)
-        calls = list(set(head_list).union(tail_list))
+        calls = e.get_all_involved_calls()
         for c in calls:
             edges[c.rank][c.seq_id] = [None] * num_ranks
             for t in calls:
@@ -351,24 +339,13 @@ def custom_semantic(str="c1:+1[MPI_File_close, MPI_File_sync] & c2:-1[MPI_File_o
             return int(str)
         else:
             return 0
-        
-    def get_node_and_idx_by_offset(node, offset, syncs, all_nodes):
-        if offset == 0:
-            return node
-        elif offset > 0:
-            return node.next_po_node(all_nodes, syncs)
-        else:
-            return node.prev_po_node(all_nodes, syncs)
-        
+    
     c1, c2 = str.split("&")
     c1_offset = get_offset(c1.split(":")[1].split("[")[0])
     c2_offset = get_offset(c2.split(":")[1].split("[")[0])
     c1_sync_arr = c1.split("[")[1].split("]")[0].split(",")
     c2_sync_arr = c2.split("[")[1].split("]")[0].split(",")
     
-    v1 = get_node_and_idx_by_offset(n1, c1_offset, c1_sync_arr)
-    v2 = get_node_and_idx_by_offset(n2, c2_offset, c2_sync_arr)
-    print("hi")
 
 
 
