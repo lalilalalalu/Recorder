@@ -1,6 +1,6 @@
 import argparse, time, sys
 from recorder_reader import RecorderReader
-from read_nodes import read_mpi_nodes, read_io_nodes
+from read_nodes import read_verifyio_nodes_and_conflicts
 from match_mpi import match_mpi_calls, MPICallType
 from verifyio_graph import VerifyIONode, VerifyIOGraph
 from typing import List, Any, Union
@@ -386,7 +386,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     vio = VerifyIO(args)
-
     #import psutil
     #print('1. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
@@ -394,21 +393,19 @@ if __name__ == "__main__":
     vio.reader = RecorderReader(args.traces_folder)
     #print('2. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
-    mpi_nodes = read_mpi_nodes(vio.reader)
+    vio.all_nodes, conflicts = read_verifyio_nodes_and_conflicts(vio.reader)
+    t2 = time.time()
+    print("Step 1. read trace records and conflicts time: %.3f secs" %(t2-t1))
     #print('3. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
-    io_nodes, conflict_pairs = read_io_nodes(vio.reader, args.traces_folder+"/conflicts.txt")
-    t2 = time.time()
-    print(args.traces_folder)
-    print("Step 1. read trace records and conflicts time: %.3f secs" %(t2-t1))
-    #print('4. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
-
-    vio.all_nodes = mpi_nodes
+    # TODO: do we need to sort here?
+    # the recorder traces should be sorted already
+    # and the conflict operations are also sorted before writing out.
+    #
+    # Set the index of each node with respect to per-rank VerifyIONode list
+    # this index will be used later to accelerate next_po_node/prev_po_node
     for rank in range(vio.reader.nprocs):
-        vio.all_nodes[rank] += io_nodes[rank]
         vio.all_nodes[rank] = sorted(vio.all_nodes[rank], key=lambda x: x.seq_id)
-        # Set the index of each node with respect to per-rank VerifyIONode list
-        # this index will be used later to accelerate next_po_node/prev_po_node
         for i, n in enumerate(vio.all_nodes[rank]): n.index = i
     #print('5. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
 
@@ -429,18 +426,19 @@ if __name__ == "__main__":
         # Correct code (traces) should generate a DAG without any cycles
         if vio.G.check_cycles(): quit()
 
-        t1 = time.time()
-        vio.G.run_vector_clock()
-        #vio.G.run_transitive_closure()
-        t2 = time.time()
-        print("Step 4. run vector clock algorithm: %.3f secs" %(t2-t1))
-        #print('8. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
-        # vio.G.plot_graph("vgraph.jpg")
+        if vio.algorithm == 2 or vio.algorithm == 3:
+            t1 = time.time()
+            vio.G.run_vector_clock()
+            #vio.G.run_transitive_closure()
+            t2 = time.time()
+            print("Step 4. run vector clock algorithm: %.3f secs" %(t2-t1))
+            #print('8. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
+            # vio.G.plot_graph("vgraph.jpg")
     else:
         mapped_mpi_edges = map_edges(mpi_edges, vio.reader)
 
     t1 = time.time()
-    verify_execution_proper_synchronization(conflict_pairs, vio)
+    verify_execution_proper_synchronization(conflicts, vio)
     t2 = time.time()
     print("Step 5. %s semantics verification time: %.3f secs" %(vio.semantics, t2-t1))
     #print('9. RAM Used (GB):', psutil.virtual_memory()[3]/1000000000)
