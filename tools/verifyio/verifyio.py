@@ -1,7 +1,7 @@
 import argparse, time, sys
 from recorder_reader import RecorderReader
 from read_nodes import read_verifyio_nodes_and_conflicts
-from match_mpi import match_mpi_calls, MPICallType
+from match_mpi import match_mpi_calls
 from verifyio_graph import VerifyIONode, VerifyIOGraph
 
 """
@@ -81,7 +81,7 @@ def verify_pair_proper_synchronization(n1, n2, vio):
         if func_name == "fcntl" or func_name == "flock":
             return True
 
-    v1, v2, next_sync_index = None, None, None
+    v1, v2 = None, None
 
     if vio.semantics == "POSIX":
         v1 = n1
@@ -221,33 +221,18 @@ def verify_execution_proper_synchronization(conflict_pairs, vio:VerifyIO):
     print("Total conflict pairs: %d" %total_conflicts)
 
 
-# A helper function to map the mpi edges to a 3D data structure to reduce the search time without changing the original mpi_edges
+# A helper function to map the mpi edges to a 3D data structure 
+# to reduce the search time without changing the original mpi_edges
 def map_edges(mpi_edges, reader):
     num_ranks = reader.nprocs
     edges = [{} for _ in range(num_ranks)]
 
     for e in mpi_edges:
-        if e.call_type == MPICallType.ALL_TO_ALL:
-            for edge_call_head in e.head:
-                if edge_call_head.seq_id not in edges[edge_call_head.rank]:
-                    edges[edge_call_head.rank][edge_call_head.seq_id] = [None] * num_ranks
-                for edge_call_tail in e.tail:
-                    edges[edge_call_head.rank][edge_call_head.seq_id][edge_call_tail.rank] = edge_call_tail
-        elif e.call_type == MPICallType.ONE_TO_MANY:
-            if e.head.seq_id not in edges[e.head.rank]:
-                edges[e.head.rank][e.head.seq_id] = [None] * num_ranks
-            for edge_call_tail in e.tail:
-                edges[e.head.rank][e.head.seq_id][edge_call_tail.rank] = edge_call_tail
-        elif e.call_type == MPICallType.MANY_TO_ONE:
-            for edge_call_head in e.head:
-                if edge_call_head.seq_id not in edges[edge_call_head.rank]:
-                    edges[edge_call_head.rank][edge_call_head.seq_id] = [None] * num_ranks
-                edges[edge_call_head.rank][edge_call_head.seq_id][e.tail.rank] = e.tail
-        else:
-            if e.head.seq_id not in edges[e.head.rank]:
-                edges[e.head.rank][e.head.seq_id] = [None] * num_ranks
-            edges[e.head.rank][e.head.seq_id][e.tail.rank] = e.tail
-
+        calls = e.get_all_involved_calls()
+        for c in calls:
+            edges[c.rank][c.seq_id] = [None] * num_ranks
+            for t in calls:
+                edges[c.rank][c.seq_id][t.rank] = t
     return edges
 
 
@@ -344,8 +329,28 @@ def get_violation_info(nodes: list, vio, summary, this_pair_ok):
             print(f"{nodes[0]}: {l_str} <--> {nodes[1]}: {r_str} on file {file}, properly synchronized: {this_pair_ok}")
 
 
-if __name__ == "__main__":
 
+def custom_semantic(str="c1:+1[MPI_File_close, MPI_File_sync] & c2:-1[MPI_File_open, MPI_File_sync]", n1:VerifyIO =None, n2: VerifyIO = None):
+
+    def get_offset(str):
+        if "+" in str:
+            return int(str[1:])
+        elif "-" in str:
+            return int(str)
+        else:
+            return 0
+    
+    c1, c2 = str.split("&")
+    c1_offset = get_offset(c1.split(":")[1].split("[")[0])
+    c2_offset = get_offset(c2.split(":")[1].split("[")[0])
+    c1_sync_arr = c1.split("[")[1].split("]")[0].split(",")
+    c2_sync_arr = c2.split("[")[1].split("]")[0].split(",")
+    
+
+
+
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("traces_folder")
     parser.add_argument("--semantics", type=str, choices=["POSIX", "MPI-IO", "Commit", "Session"],
