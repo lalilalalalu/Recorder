@@ -1,10 +1,18 @@
 import sys
 from itertools import repeat
-from verifyio_graph import VerifyIONode, MPICallType
+from enum import Enum
+from verifyio_graph import VerifyIONode
 import read_nodes
 
 ANY_SOURCE = -1
 ANY_TAG = -2
+
+class MPICallType(Enum):
+    ALL_TO_ALL     = 1
+    ONE_TO_MANY    = 2
+    MANY_TO_ONE    = 3
+    POINT_TO_POINT = 4
+    OTHER          = 5  # e.g., wait/test calls
 
 class MPIEdge:
     def __init__(self, call_type, head=None, tail=None):
@@ -23,6 +31,30 @@ class MPIEdge:
             self.head = head        # list/instance of VerifyIONode
         if tail:
             self.tail = tail        # list/instance of VerifyIONode
+
+    # Although its quite useful to get the edge (head -> tail)
+    # to represent the order between MPI calls, it is acutally
+    # not needed for our I/O verification purposes.
+    #
+    # We need the MPI calls to establish the temporal order
+    # between conflicting I/O calls,
+    # e.g., P1: write -> send; P2: recv -> read
+    # send/recv gives order bwteen write and read.
+    # But we really care whther send finishes-/happens-before recv
+    # we can simply treat those two as a fence that gives order
+    # to write and read.
+    # That's why we provide this funciton, so the callers
+    # can use them (as a fence) when building the
+    # happens-before graph for I/O oeprations.
+    def get_all_involved_calls(self):
+        if self.call_type is MPICallType.ALL_TO_ALL:
+            return self.head
+        if self.call_type is MPICallType.ONE_TO_MANY:
+            return [self.head]+self.tail
+        if self.call_type is MPICallType.MANY_TO_ONE:
+            return self.head+[self.tail]
+        if self.call_type is MPICallType.POINT_TO_POINT:
+            return [self.head]+[self.tail]
 
 class MPICall:
     def __init__(self, rank, seq_id, func, **kwargs):
