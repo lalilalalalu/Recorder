@@ -187,7 +187,7 @@ def verify_execution_proper_synchronization(conflict_pairs, vio:VerifyIO):
                 for n2 in n2s[rank]:
                     if args.show_summary:
                         get_violation_info([n1, n2], vio, summary, False)
-                    print(f"{vio.semantics} violation: {n1} {n2}")
+                    #print(f"{vio.semantics} violation: {n1} {n2}")
                 continue
 
             # now we are here, its very likely that n1 is not
@@ -201,7 +201,7 @@ def verify_execution_proper_synchronization(conflict_pairs, vio:VerifyIO):
                     if args.show_summary:
                         get_violation_info([n1, n2], vio, summary, this_pair_ok)
                     total_violations += 1
-                    print(f"{vio.semantics} violation: {n1} {n2}")
+                    #print(f"{vio.semantics} violation: {n1} {n2}")
 
         t2 = time.time()
         #print(debug_str+", time: %.3f" %(t2-t1))
