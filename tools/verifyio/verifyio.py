@@ -15,6 +15,8 @@ class VerifyIO:
         self.show_summary = args.show_summary       # whether to show summary in the end
         self.show_details = args.show_details       # whether to show violation details
         self.show_full_chain = args.show_full_chain # whether to show full call chain
+        if self.semantics == "Custom":
+            self.semantic_string = args.semantic_string # Custom semantics string
         self.reader = None                          # RecorderReader
         self.G = None                               # Happens-before Graph (VerifyIOGraph)
         self.all_nodes = None                       # Per-rank VerifyIONode list
@@ -104,6 +106,8 @@ def verify_pair_proper_synchronization(n1, n2, vio):
             # pass in funcs=None to get the immediate next/prev po node.
             v1 = vio.next_po_node(next_sync, None)
         v2 = prev_sync
+    elif vio.semantics == "Custom":
+        v1, v2 = custom_semantic(vio.semantic_string, n1, n2)
 
     if (not v1) or (not v2):
         return False
@@ -330,21 +334,24 @@ def get_violation_info(nodes: list, vio, summary, this_pair_ok):
 
 
 
-def custom_semantic(str="c1:+1[MPI_File_close, MPI_File_sync] & c2:-1[MPI_File_open, MPI_File_sync]", n1:VerifyIO =None, n2: VerifyIO = None):
+def custom_semantic(str=None, n1:VerifyIO =None, n2: VerifyIO = None):
 
-    def get_offset(str):
-        if "+" in str:
-            return int(str[1:])
-        elif "-" in str:
-            return int(str)
-        else:
-            return 0
+    def get_offset(s):
+        s = s.split(":")[1].split("[")[0]
+        return int(s[1:]) if "+" in s else int(s) if "-" in s else 0
+
+    def get_node(conflict_str, node):
+        offset = get_offset(conflict_str)
+        if offset == 0:
+            return node
+
+        sync_arr = conflict_str.split("[")[1].split("]")[0].split(",")
+        po_node_fn = vio.next_po_node if offset > 0 else vio.prev_po_node
+        return po_node_fn(node, sync_arr if sync_arr else None)
     
     c1, c2 = str.split("&")
-    c1_offset = get_offset(c1.split(":")[1].split("[")[0])
-    c2_offset = get_offset(c2.split(":")[1].split("[")[0])
-    c1_sync_arr = c1.split("[")[1].split("]")[0].split(",")
-    c2_sync_arr = c2.split("[")[1].split("]")[0].split(",")
+    return get_node(c1, n1), get_node(c2, n2)
+
     
 
 
@@ -353,10 +360,11 @@ def custom_semantic(str="c1:+1[MPI_File_close, MPI_File_sync] & c2:-1[MPI_File_o
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("traces_folder")
-    parser.add_argument("--semantics", type=str, choices=["POSIX", "MPI-IO", "Commit", "Session"],
+    parser.add_argument("--semantics", type=str, choices=["POSIX", "MPI-IO", "Commit", "Session", "Custom"],
                         default="MPI-IO", help="Verify if I/O operations are properly synchronized under the specific semantics")
     parser.add_argument("--algorithm", type=int, choices=[1, 2, 3, 4],
                         default=3, help="1: graph reachibility, 2: transitive closure, 3: vector clock, 4: on-the-fly MPI check")
+    parser.add_argument("--semantic_string", type=str, default="c1:+1[MPI_File_close, MPI_File_sync] & c2:-1[MPI_File_open, MPI_File_sync]")
     parser.add_argument("--show_details", action="store_true", help="Show details of the conflicts")
     parser.add_argument("--show_summary", action="store_true", help="Show summary of the conflicts")
     parser.add_argument("--show_full_chain", action="store_true", help="Show the full call chain of the conflicts")
