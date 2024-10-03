@@ -9,22 +9,91 @@ static bool pnetcdf_tracing  = true;
 static bool netcdf_tracing   = true;
 
 struct gotcha_binding_t posix_wrap_actions [] = {
+    GOTCHA_WRAP_ACTION(creat),
+    GOTCHA_WRAP_ACTION(creat64),
     GOTCHA_WRAP_ACTION(open),
     GOTCHA_WRAP_ACTION(open64),
     GOTCHA_WRAP_ACTION(close),
     GOTCHA_WRAP_ACTION(write),
     GOTCHA_WRAP_ACTION(read),
+    GOTCHA_WRAP_ACTION(lseek),
+    GOTCHA_WRAP_ACTION(lseek64),
     GOTCHA_WRAP_ACTION(pread),
     GOTCHA_WRAP_ACTION(pread64),
     GOTCHA_WRAP_ACTION(pwrite),
     GOTCHA_WRAP_ACTION(pwrite64),
     GOTCHA_WRAP_ACTION(readv),
     GOTCHA_WRAP_ACTION(writev),
+    /*
+    GOTCHA_WRAP_ACTION(mmap),
+    GOTCHA_WRAP_ACTION(mmap64),
+    GOTCHA_WRAP_ACTION(msync),
+    */
     GOTCHA_WRAP_ACTION(fopen),
     GOTCHA_WRAP_ACTION(fopen64),
     GOTCHA_WRAP_ACTION(fclose),
     GOTCHA_WRAP_ACTION(fread),
-    GOTCHA_WRAP_ACTION(fwrite)
+    GOTCHA_WRAP_ACTION(fwrite),
+    GOTCHA_WRAP_ACTION(fflush),
+    GOTCHA_WRAP_ACTION(ftell),
+    GOTCHA_WRAP_ACTION(fseek),
+    GOTCHA_WRAP_ACTION(fsync),
+    GOTCHA_WRAP_ACTION(fdatasync),
+#if __GLIBC__ == 2 && __GLIBC_MINOR__ < 33
+#ifdef HAVE___XSTAT
+    GOTCHA_WRAP_ACTION(__xstat),
+#endif
+#ifdef HAVE___XSTAT64
+    GOTCHA_WRAP_ACTION(__xstat64),
+#endif
+#ifdef HAVE___LXSTAT
+    GOTCHA_WRAP_ACTION(__lxstat),
+#endif
+#ifdef HAVE___LXSTAT64
+    GOTCHA_WRAP_ACTION(__lxstat64),
+#endif
+#ifdef HAVE___FXSTAT
+    GOTCHA_WRAP_ACTION(__fxstat),
+#endif
+#ifdef HAVE___FXSTAT64
+    GOTCHA_WRAP_ACTION(__fxstat64),
+#endif
+#endif
+    GOTCHA_WRAP_ACTION(getcwd),
+    GOTCHA_WRAP_ACTION(mkdir),
+    GOTCHA_WRAP_ACTION(rmdir),
+    GOTCHA_WRAP_ACTION(chdir),
+    GOTCHA_WRAP_ACTION(link),
+    GOTCHA_WRAP_ACTION(linkat),
+    GOTCHA_WRAP_ACTION(unlink),
+    GOTCHA_WRAP_ACTION(symlink),
+    GOTCHA_WRAP_ACTION(symlinkat),
+    GOTCHA_WRAP_ACTION(readlink),
+    GOTCHA_WRAP_ACTION(readlinkat),
+    GOTCHA_WRAP_ACTION(rename),
+    GOTCHA_WRAP_ACTION(chmod),
+    GOTCHA_WRAP_ACTION(chown),
+    GOTCHA_WRAP_ACTION(lchown),
+    GOTCHA_WRAP_ACTION(utime),
+    GOTCHA_WRAP_ACTION(opendir),
+    GOTCHA_WRAP_ACTION(readdir),
+    GOTCHA_WRAP_ACTION(closedir),
+    GOTCHA_WRAP_ACTION(fcntl),
+    GOTCHA_WRAP_ACTION(dup),
+    GOTCHA_WRAP_ACTION(dup2),
+    GOTCHA_WRAP_ACTION(pipe),
+    GOTCHA_WRAP_ACTION(mkfifo),
+    GOTCHA_WRAP_ACTION(umask),
+    GOTCHA_WRAP_ACTION(fdopen),
+    GOTCHA_WRAP_ACTION(fileno),
+    GOTCHA_WRAP_ACTION(access),
+    GOTCHA_WRAP_ACTION(faccessat),
+    GOTCHA_WRAP_ACTION(tmpfile),
+    GOTCHA_WRAP_ACTION(remove),
+    GOTCHA_WRAP_ACTION(truncate),
+    GOTCHA_WRAP_ACTION(ftruncate),
+    GOTCHA_WRAP_ACTION(fseeko),
+    GOTCHA_WRAP_ACTION(ftello)
 };
 
 struct gotcha_binding_t mpiio_wrap_actions [] = {

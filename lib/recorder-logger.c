@@ -98,6 +98,12 @@ void write_record(Record *record) {
 
     append_terminal(&logger.cfg, entry->terminal_id, 1);
 
+    logger->mpi_rank;
+    printf("terminid:%d", entry->terminal_id);
+    const char* funcname = get_function_name_by_id(record->func_id);
+    printf("funcname:%s", funcname);
+
+
     // store timestamps, only write out at finalize time
     uint32_t delta_tstart = (record->tstart-logger.prev_tstart) / logger.ts_resolution;
     uint32_t delta_tend   = (record->tend-logger.prev_tstart)   / logger.ts_resolution;
@@ -394,6 +400,9 @@ void logger_finalize() {
     if (logger.interprocess_pattern_recognition) {
         iopr_interprocess(&logger);
     }
+
+    // print cfg
+    // sequitur_print_rules(&logger.cfg);
 
     // interprocess cst and cfg compression
     cleanup_record_stack();

@@ -172,23 +172,90 @@ bool gotcha_netcdf_tracing();
 
 /* POSIX I/O */
 GOTCHA_WRAP(creat, int, (const char *path, mode_t mode));
+GOTCHA_WRAP(creat64, int, (const char *path, mode_t mode));
 GOTCHA_WRAP(open, int, (const char *path, int flags, ...));
 GOTCHA_WRAP(open64, int, (const char *path, int flags, ...));
 GOTCHA_WRAP(close, int, (int fd));
 GOTCHA_WRAP(write, ssize_t, (int fd, const void *buf, size_t count));
 GOTCHA_WRAP(read, ssize_t, (int fd, void *buf, size_t count));
+GOTCHA_WRAP(lseek, off_t, (int fd, off_t offset, int whence));
+GOTCHA_WRAP(lseek64, off64_t, (int fd, off64_t offset, int whence));
 GOTCHA_WRAP(pread, ssize_t, (int fd, void *buf, size_t count, off_t offset));
 GOTCHA_WRAP(pread64, ssize_t, (int fd, void *buf, size_t count, off64_t offset));
 GOTCHA_WRAP(pwrite, ssize_t, (int fd, const void *buf, size_t count, off_t offset));
 GOTCHA_WRAP(pwrite64, ssize_t, (int fd, const void *buf, size_t count, off64_t offset));
 GOTCHA_WRAP(readv, ssize_t, (int fd, const struct iovec *iov, int iovcnt));
 GOTCHA_WRAP(writev, ssize_t, (int fd, const struct iovec *iov, int iovcnt));
+/*
+GOTCHA_WRAP(mmap, void *, (void *addr, size_t length, int prot, int flags, int fd, off_t offset));
+GOTCHA_WRAP(mmap64, void *, (void *addr, size_t length, int prot, int flags, int fd, off64_t offset));
+GOTCHA_WRAP(msync, int, (void *addr, size_t length, int flags));
+*/
 GOTCHA_WRAP(fopen, FILE *, (const char *path, const char *mode));
 GOTCHA_WRAP(fopen64, FILE *, (const char *path, const char *mode));
 GOTCHA_WRAP(fclose, int, (FILE * fp));
 GOTCHA_WRAP(fread, size_t, (void *ptr, size_t size, size_t nmemb, FILE *stream));
 GOTCHA_WRAP(fwrite, size_t, (const void *ptr, size_t size, size_t nmemb, FILE *stream));
-
+GOTCHA_WRAP(ftell, long, (FILE *stream));
+GOTCHA_WRAP(fseek, int, (FILE * stream, long offset, int whence));
+GOTCHA_WRAP(fsync, int, (int fd));
+GOTCHA_WRAP(fdatasync, int, (int fd));
+// we need to use vprintf to trace fprintf so we can pass va_list
+//GOTCHA_WRAP(vfprintf, int, (FILE *stream, const char *format, va_list ap));
+// stat/fstat/lstat are wrappers in GLIBC and dlsym can not hook them.
+// Instead, xstat/lxstat/fxstat are their GLIBC implementations so we can hook them.
+#if __GLIBC__ == 2 && __GLIBC_MINOR__ < 33
+GOTCHA_WRAP(__xstat, int, (int vers, const char *path, struct stat *buf));
+GOTCHA_WRAP(__xstat64, int, (int vers, const char *path, struct stat64 *buf));
+GOTCHA_WRAP(__lxstat, int, (int vers, const char *path, struct stat *buf));
+GOTCHA_WRAP(__lxstat64, int, (int vers, const char *path, struct stat64 *buf));
+GOTCHA_WRAP(__fxstat, int, (int vers, int fd, struct stat *buf));
+GOTCHA_WRAP(__fxstat64, int, (int vers, int fd, struct stat64 *buf));
+#endif
+/* Other POSIX Function Calls, not directly related to I/O */
+// Files and Directories
+GOTCHA_WRAP(getcwd, char*, (char *buf, size_t size));
+GOTCHA_WRAP(mkdir, int, (const char *pathname, mode_t mode));
+GOTCHA_WRAP(rmdir, int, (const char *pathname));
+GOTCHA_WRAP(chdir, int, (const char *path));
+GOTCHA_WRAP(link, int, (const char *oldpath, const char *newpath));
+GOTCHA_WRAP(linkat, int, (int fd1, const char *path1, int fd2, const char *path2, int flag));
+GOTCHA_WRAP(unlink, int, (const char *pathname));
+GOTCHA_WRAP(symlink, int, (const char *path1, const char *path2));
+GOTCHA_WRAP(symlinkat, int, (const char *path1, int fd, const char *path2));
+GOTCHA_WRAP(readlink, ssize_t, (const char *path, char *buf, size_t bufsize));
+GOTCHA_WRAP(readlinkat, ssize_t, (int fd, const char *path, char *buf, size_t bufsize));
+GOTCHA_WRAP(rename, int, (const char *oldpath, const char *newpath));
+GOTCHA_WRAP(chmod, int, (const char *path, mode_t mode));
+GOTCHA_WRAP(chown, int, (const char *path, uid_t owner, gid_t group));
+GOTCHA_WRAP(lchown, int, (const char *path, uid_t owner, gid_t group));
+GOTCHA_WRAP(utime, int, (const char *filename, const struct utimbuf *buf));
+GOTCHA_WRAP(opendir, DIR*, (const char *name));
+GOTCHA_WRAP(readdir, struct dirent*, (DIR *dir));
+GOTCHA_WRAP(closedir, int, (DIR *dir));
+// GOTCHA_WRAP(rewinddir, void, (DIR *dir));
+// GOTCHA_WRAP(__xmknod, int, (int ver, const char *path, mode_t mode, dev_t dev));
+// GOTCHA_WRAP(__xmknodat, int, (int ver, int fd, const char *path, mode_t mode, dev_t dev));
+// Advanced File Operations
+GOTCHA_WRAP(fcntl, int, (int fd, int cmd, ...));
+GOTCHA_WRAP(dup, int, (int oldfd));
+GOTCHA_WRAP(dup2, int, (int oldfd, int newfd));
+GOTCHA_WRAP(pipe, int, (int pipefd[2]));
+GOTCHA_WRAP(mkfifo, int, (const char *pathname, mode_t mode));
+GOTCHA_WRAP(umask, mode_t, (mode_t mask));
+GOTCHA_WRAP(fdopen, FILE*, (int fd, const char *mode));
+GOTCHA_WRAP(fileno, int, (FILE *stream));
+GOTCHA_WRAP(access, int, (const char *path, int amode));
+GOTCHA_WRAP(faccessat, int, (int fd, const char *path, int amode, int flag));
+GOTCHA_WRAP(tmpfile, FILE*, (void));
+GOTCHA_WRAP(remove, int, (const char *pathname));
+GOTCHA_WRAP(truncate, int, (const char *pathname, off_t length));
+GOTCHA_WRAP(ftruncate, int, (int fd, off_t length));
+// Added 01/15/2021
+GOTCHA_WRAP(fseeko, int, (FILE *stream, off_t offset, int whence));
+GOTCHA_WRAP(ftello, off_t, (FILE *stream));
+// Added 10/12/2023
+GOTCHA_WRAP(fflush, int, (FILE *stream));
 
 // Others
 //int statfs(const char *path, struct statfs *buf);
