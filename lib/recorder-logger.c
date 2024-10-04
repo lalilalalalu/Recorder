@@ -98,7 +98,7 @@ void write_record(Record *record) {
 
     append_terminal(&logger.cfg, entry->terminal_id, 1);
 
-    logger->mpi_rank;
+    printf("rank:%d", logger.rank);
     printf("terminid:%d", entry->terminal_id);
     const char* funcname = get_function_name_by_id(record->func_id);
     printf("funcname:%s", funcname);
