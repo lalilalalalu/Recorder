@@ -151,12 +151,16 @@ int WRAPPER_NAME(fclose)(FILE *stream) {
 
 int WRAPPER_NAME(fsync)(int fd) {
     GET_CHECK_FILENAME(fsync, (fd), &fd, ARG_TYPE_FD);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, fsync, (fd));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, fsync, (fd));
+    char** args = assemble_args_list(1, _fname);
+    RECORDER_INTERCEPTOR_EPILOGUE(1, args);
 }
 
 int WRAPPER_NAME(fdatasync)(int fd) {
     GET_CHECK_FILENAME(fdatasync, (fd), &fd, ARG_TYPE_FD);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, fdatasync, (fd));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, fdatasync, (fd));
+    char** args = assemble_args_list(1, _fname);
+    RECORDER_INTERCEPTOR_EPILOGUE(1, args);
 }
 
 /*
@@ -183,12 +187,18 @@ int WRAPPER_NAME(msync)(void *addr, size_t length, int flags) {
 
 int WRAPPER_NAME(creat)(const char *path, mode_t mode) {
     GET_CHECK_FILENAME(creat, (path, mode), path, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, creat, (path, mode));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, creat, (path, mode));
+    add_to_map(_fname, &res, ARG_TYPE_FD);
+    char** args = assemble_args_list(2, _fname, itoa(mode));
+    RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 
 int WRAPPER_NAME(creat64)(const char *path, mode_t mode) {
     GET_CHECK_FILENAME(creat64, (path, mode), path, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, creat64, (path, mode));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, creat64, (path, mode));
+    add_to_map(_fname, &res, ARG_TYPE_FD);
+    char** args = assemble_args_list(2, _fname, itoa(mode));
+    RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 
 int WRAPPER_NAME(open64)(const char *path, int flags, ...) {
@@ -278,32 +288,44 @@ FILE* WRAPPER_NAME(fopen)(const char *path, const char *mode) {
 #if __GLIBC__ == 2 && __GLIBC_MINOR__ < 33
 int WRAPPER_NAME(__xstat)(int vers, const char *path, struct stat *buf) {
     GET_CHECK_FILENAME(__xstat, (vers, path, buf), path, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, __xstat, (vers, path, buf));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, __xstat, (vers, path, buf));
+    char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 int WRAPPER_NAME(__xstat64)(int vers, const char *path, struct stat64 *buf) {
     GET_CHECK_FILENAME(__xstat64, (vers, path, buf), path, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, __xstat64, (vers, path, buf));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, __xstat64, (vers, path, buf));
+    char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 int WRAPPER_NAME(__lxstat)(int vers, const char *path, struct stat *buf) {
     GET_CHECK_FILENAME(__lxstat, (vers, path, buf), path, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, __lxstat, (vers, path, buf));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, __lxstat, (vers, path, buf));
+    char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 int WRAPPER_NAME(__lxstat64)(int vers, const char *path, struct stat64 *buf) {
     GET_CHECK_FILENAME(__lxstat64, (vers, path, buf), path, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, __lxstat64, (vers, path, buf));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, __lxstat64, (vers, path, buf));
+    char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 int WRAPPER_NAME(__fxstat)(int vers, int fd, struct stat *buf) {
     GET_CHECK_FILENAME(__fxstat, (vers, fd, buf), &fd, ARG_TYPE_FD);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, __fxstat, (vers, fd, buf));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, __fxstat, (vers, fd, buf));
+    char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 int WRAPPER_NAME(__fxstat64)(int vers, int fd, struct stat64 *buf) {
     GET_CHECK_FILENAME(__fxstat64, (vers, fd, buf), &fd, ARG_TYPE_FD);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, __fxstat64, (vers, fd, buf));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, __fxstat64, (vers, fd, buf));
+    char** args = assemble_args_list(3, itoa(vers), _fname, ptoa(buf));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 #endif
 
@@ -417,99 +439,151 @@ ssize_t WRAPPER_NAME(write)(int fd, const void *buf, size_t count) {
 
 int WRAPPER_NAME(fseek)(FILE *stream, long offset, int whence) {
     GET_CHECK_FILENAME(fseek, (stream, offset, whence), stream, ARG_TYPE_STREAM);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, fseek, (stream, offset, whence));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, fseek, (stream, offset, whence));
+    char** args = assemble_args_list(3, _fname, itoa(offset), itoa(whence));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 long WRAPPER_NAME(ftell)(FILE *stream) {
     GET_CHECK_FILENAME(ftell, (stream), stream, ARG_TYPE_STREAM);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(long, ftell, (stream));
+    RECORDER_INTERCEPTOR_PROLOGUE(long, ftell, (stream));
+    char** args = assemble_args_list(1, _fname);
+    RECORDER_INTERCEPTOR_EPILOGUE(1, args)
 }
 
 
 off64_t WRAPPER_NAME(lseek64)(int fd, off64_t offset, int whence) {
     GET_CHECK_FILENAME(lseek64, (fd, offset, whence), &fd, ARG_TYPE_FD);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(off64_t, lseek64, (fd, offset, whence));
+    RECORDER_INTERCEPTOR_PROLOGUE(off64_t, lseek64, (fd, offset, whence));
+    off64_t stored_offset = (off64_t) offset;
+    if (logger_intraprocess_pattern_recognition())
+        stored_offset = iopr_intraprocess("lseek64", (off64_t)offset);
+    char** args = assemble_args_list(3, _fname, itoa(stored_offset), itoa(whence));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 off_t WRAPPER_NAME(lseek)(int fd, off_t offset, int whence) {
     GET_CHECK_FILENAME(lseek, (fd, offset, whence), &fd, ARG_TYPE_FD);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(off_t, lseek, (fd, offset, whence));
+    RECORDER_INTERCEPTOR_PROLOGUE(off_t, lseek, (fd, offset, whence));
+    off64_t stored_offset = (off64_t) offset;
+    if (logger_intraprocess_pattern_recognition())
+        stored_offset = iopr_intraprocess("lseek", (off64_t)offset);
+    char** args = assemble_args_list(3, _fname, itoa(stored_offset), itoa(whence));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 
 /* Below are non File-I/O related function calls */
 char* WRAPPER_NAME(getcwd)(char *buf, size_t size) {
-    RECORDER_INTERCEPTOR_PASSTHROUGH(char*, getcwd, (buf, size));
+    RECORDER_INTERCEPTOR_PROLOGUE(char*, getcwd, (buf, size));
+    char** args = assemble_args_list(2, ptoa(buf), itoa(size));
+    RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 int WRAPPER_NAME(mkdir)(const char *pathname, mode_t mode) {
     GET_CHECK_FILENAME(mkdir, (pathname, mode), pathname, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, mkdir, (pathname, mode));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, mkdir, (pathname, mode));
+    char** args = assemble_args_list(2, _fname, itoa(mode));
+    RECORDER_INTERCEPTOR_EPILOGUE(2, args)
 }
 int WRAPPER_NAME(rmdir)(const char *pathname) {
     GET_CHECK_FILENAME(rmdir, (pathname), pathname, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, rmdir, (pathname));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, rmdir, (pathname));
+    char** args = assemble_args_list(1, _fname);
+    RECORDER_INTERCEPTOR_EPILOGUE(1, args);
 }
 int WRAPPER_NAME(chdir)(const char *path) {
     GET_CHECK_FILENAME(chdir, (path), path, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, chdir, (path));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, chdir, (path));
+    char** args = assemble_args_list(1, _fname);
+    RECORDER_INTERCEPTOR_EPILOGUE(1, args);
 }
 int WRAPPER_NAME(link)(const char *oldpath, const char *newpath) {
     GET_CHECK_FILENAME(link, (oldpath, newpath), oldpath, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, link, (oldpath, newpath));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, link, (oldpath, newpath));
+    char** args = assemble_args_list(2, realrealpath(oldpath), realrealpath(newpath));
+    RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 int WRAPPER_NAME(unlink)(const char *pathname) {
     GET_CHECK_FILENAME(unlink, (pathname), pathname, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, unlink, (pathname));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, unlink, (pathname));
+    char** args = assemble_args_list(1, _fname);
+    RECORDER_INTERCEPTOR_EPILOGUE(1, args);
 }
 int WRAPPER_NAME(linkat)(int fd1, const char *path1, int fd2, const char *path2, int flag) {
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, linkat, (fd1, path1, fd2, path2, flag));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, linkat, (fd1, path1, fd2, path2, flag));
+    char** args = assemble_args_list(5, itoa(fd1), realrealpath(path1), itoa(fd2), realrealpath(path2), itoa(flag));
+    RECORDER_INTERCEPTOR_EPILOGUE(5, args);
 }
 int WRAPPER_NAME(symlink)(const char *path1, const char *path2) {
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, symlink, (path1, path2));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, symlink, (path1, path2));
+    char** args = assemble_args_list(2, realrealpath(path1), realrealpath(path2));
+    RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 int WRAPPER_NAME(symlinkat)(const char *path1, int fd, const char *path2) {
     GET_CHECK_FILENAME(symlinkat, (path1, fd, path2), &fd, ARG_TYPE_FD);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, symlinkat, (path1, fd, path2));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, symlinkat, (path1, fd, path2));
+    char** args = assemble_args_list(3, realrealpath(path1), _fname, realrealpath(path2));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 ssize_t WRAPPER_NAME(readlink)(const char *path, char *buf, size_t bufsize) {
     GET_CHECK_FILENAME(readlink, (path, buf, bufsize), path, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, readlink, (path, buf, bufsize));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, readlink, (path, buf, bufsize));
+    char** args = assemble_args_list(3, _fname, ptoa(buf), itoa(bufsize));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 ssize_t WRAPPER_NAME(readlinkat)(int fd, const char *path, char *buf, size_t bufsize) {
     GET_CHECK_FILENAME(readlinkat, (fd, path, buf, bufsize), &fd, ARG_TYPE_FD);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, readlinkat, (fd, path, buf, bufsize));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, readlinkat, (fd, path, buf, bufsize));
+    char** args = assemble_args_list(4, _fname, realrealpath(path), ptoa(buf), itoa(bufsize));
+    RECORDER_INTERCEPTOR_EPILOGUE(4, args);
 }
 
 int WRAPPER_NAME(rename)(const char *oldpath, const char *newpath) {
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, rename, (oldpath, newpath));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, rename, (oldpath, newpath));
+    char** args = assemble_args_list(2, realrealpath(oldpath), realrealpath(newpath));
+    RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 int WRAPPER_NAME(chmod)(const char *path, mode_t mode) {
     GET_CHECK_FILENAME(chmod, (path, mode), path, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, chmod, (path, mode));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, chmod, (path, mode));
+    char** args = assemble_args_list(2, _fname, itoa(mode));
+    RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 int WRAPPER_NAME(chown)(const char *path, uid_t owner, gid_t group) {
     GET_CHECK_FILENAME(chown, (path, owner, group), path, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, chown, (path, owner, group));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, chown, (path, owner, group));
+    char** args = assemble_args_list(3, _fname, itoa(owner), itoa(group));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 int WRAPPER_NAME(lchown)(const char *path, uid_t owner, gid_t group) {
     GET_CHECK_FILENAME(lchown, (path, owner, group), path, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, lchown, (path, owner, group));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, lchown, (path, owner, group));
+    char** args = assemble_args_list(3, _fname, itoa(owner), itoa(group));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 int WRAPPER_NAME(utime)(const char *filename, const struct utimbuf *buf) {
     GET_CHECK_FILENAME(utime, (filename, buf), filename, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, utime, (filename, buf));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, utime, (filename, buf));
+    char** args = assemble_args_list(2, _fname, ptoa(buf));
+    RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 DIR* WRAPPER_NAME(opendir)(const char *name) {
     GET_CHECK_FILENAME(opendir, (name), name, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(DIR*, opendir, (name));
+    RECORDER_INTERCEPTOR_PROLOGUE(DIR*, opendir, (name));
+    char** args = assemble_args_list(1, _fname);
+    RECORDER_INTERCEPTOR_EPILOGUE(1, args);
 }
 struct dirent* WRAPPER_NAME(readdir)(DIR *dir) {
     // TODO: DIR - get path
-    RECORDER_INTERCEPTOR_PASSTHROUGH(struct dirent*, readdir, (dir));
+    RECORDER_INTERCEPTOR_PROLOGUE(struct dirent*, readdir, (dir));
+    char** args = assemble_args_list(1, ptoa(dir));
+    RECORDER_INTERCEPTOR_EPILOGUE(1, args);
 }
 int WRAPPER_NAME(closedir)(DIR *dir) {
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, closedir, (dir));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, closedir, (dir));
+    char** args = assemble_args_list(1, ptoa(dir)); // TODO dir is not availble after a success closedir() call
+    RECORDER_INTERCEPTOR_EPILOGUE(1, args);
 }
 
 /*
@@ -540,12 +614,16 @@ int WRAPPER_NAME(fcntl)(int fd, int cmd, ...) {
 
         GET_CHECK_FILENAME(fcntl, (fd, cmd, val), &fd, ARG_TYPE_FD);
 
-        RECORDER_INTERCEPTOR_PASSTHROUGH(int, fcntl, (fd, cmd, val));
+        RECORDER_INTERCEPTOR_PROLOGUE(int, fcntl, (fd, cmd, val));
+        char** args = assemble_args_list(3, _fname, itoa(cmd), itoa(val));
+        RECORDER_INTERCEPTOR_EPILOGUE(3, args);
     } else if(cmd==F_GETFD || cmd==F_GETFL || cmd==F_GETOWN) {                     // arg: void
 
         GET_CHECK_FILENAME(fcntl, (fd, cmd), &fd, ARG_TYPE_FD);
 
-        RECORDER_INTERCEPTOR_PASSTHROUGH(int, fcntl, (fd, cmd));
+        RECORDER_INTERCEPTOR_PROLOGUE(int, fcntl, (fd, cmd));
+        char** args = assemble_args_list(2, _fname, itoa(cmd));
+        RECORDER_INTERCEPTOR_EPILOGUE(2, args);
     } else if(cmd==F_SETLK || cmd==F_SETLKW || cmd==F_GETLK) {
         va_list arg;
         va_start(arg, cmd);
@@ -554,77 +632,116 @@ int WRAPPER_NAME(fcntl)(int fd, int cmd, ...) {
 
         GET_CHECK_FILENAME(fcntl, (fd, cmd, lk), &fd, ARG_TYPE_FD);
 
-        RECORDER_INTERCEPTOR_PASSTHROUGH(int, fcntl, (fd, cmd, lk));
+        RECORDER_INTERCEPTOR_PROLOGUE(int, fcntl, (fd, cmd, lk));
+        char** args = assemble_args_list(3, _fname, itoa(cmd), itoa(lk->l_type));
+        RECORDER_INTERCEPTOR_EPILOGUE(3, args);
     } else {                        // assume arg: void, cmd==F_GETOWN_EX || cmd==F_SETOWN_EX ||cmd==F_GETSIG || cmd==F_SETSIG)
         GET_CHECK_FILENAME(fcntl, (fd, cmd), &fd, ARG_TYPE_FD);
-        RECORDER_INTERCEPTOR_PASSTHROUGH(int, fcntl, (fd, cmd));
+        RECORDER_INTERCEPTOR_PROLOGUE(int, fcntl, (fd, cmd));
+        char** args = assemble_args_list(2, _fname, itoa(cmd));
+        RECORDER_INTERCEPTOR_EPILOGUE(2, args);
     }
 }
 #endif
 
 int WRAPPER_NAME(dup)(int oldfd) {
     GET_CHECK_FILENAME(dup, (oldfd), &oldfd, ARG_TYPE_FD);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, dup, (oldfd));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, dup, (oldfd));
+    add_to_map(_fname, &res, ARG_TYPE_FD);
+    char** args = assemble_args_list(1, itoa(oldfd));
+    RECORDER_INTERCEPTOR_EPILOGUE(1, args);
 }
 int WRAPPER_NAME(dup2)(int oldfd, int newfd) {
     GET_CHECK_FILENAME(dup2, (oldfd, newfd), &oldfd, ARG_TYPE_FD);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, dup2, (oldfd, newfd));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, dup2, (oldfd, newfd));
+    add_to_map(_fname, &res, ARG_TYPE_FD);
+    char** args = assemble_args_list(2, itoa(oldfd), itoa(newfd));
+    RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 int WRAPPER_NAME(pipe)(int pipefd[2]) {
     // TODO: pipefd?
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, pipe, (pipefd));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, pipe, (pipefd));
+    char** args = assemble_args_list(2, itoa(pipefd[0]), itoa(pipefd[1]));
+    RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 int WRAPPER_NAME(mkfifo)(const char *pathname, mode_t mode) {
     GET_CHECK_FILENAME(mkfifo, (pathname, mode), pathname, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, mkfifo, (pathname, mode));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, mkfifo, (pathname, mode));
+    char** args = assemble_args_list(2, _fname, itoa(mode));
+    RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 mode_t WRAPPER_NAME(umask)(mode_t mask) {
-    RECORDER_INTERCEPTOR_PASSTHROUGH(mode_t, umask, (mask));
+    RECORDER_INTERCEPTOR_PROLOGUE(mode_t, umask, (mask));
+    char** args = assemble_args_list(1, itoa(mask));
+    RECORDER_INTERCEPTOR_EPILOGUE(1, args);
 }
 
 FILE* WRAPPER_NAME(fdopen)(int fd, const char *mode) {
     GET_CHECK_FILENAME(fdopen, (fd, mode), &fd, ARG_TYPE_FD);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(FILE*, fdopen, (fd, mode));
+    RECORDER_INTERCEPTOR_PROLOGUE(FILE*, fdopen, (fd, mode));
+    add_to_map(_fname, res, ARG_TYPE_STREAM);
+    char** args = assemble_args_list(2, _fname, strdup(mode));
+    RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 int WRAPPER_NAME(fileno)(FILE *stream) {
     GET_CHECK_FILENAME(fileno, (stream), stream, ARG_TYPE_STREAM);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, fileno, (stream));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, fileno, (stream));
+    char** args = assemble_args_list(1, _fname);
+    RECORDER_INTERCEPTOR_EPILOGUE(1, args);
 }
 int WRAPPER_NAME(access)(const char *path, int amode) {
     GET_CHECK_FILENAME(access, (path, amode), path, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, access, (path, amode));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, access, (path, amode));
+    char** args = assemble_args_list(2, _fname, itoa(amode));
+    RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 int WRAPPER_NAME(faccessat)(int fd, const char *path, int amode, int flag) {
     GET_CHECK_FILENAME(faccessat, (fd, path, amode, flag), &fd, ARG_TYPE_FD);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, faccessat, (fd, path, amode, flag));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, faccessat, (fd, path, amode, flag));
+    char** args = assemble_args_list(4, _fname, realrealpath(path), itoa(amode), itoa(flag));
+    RECORDER_INTERCEPTOR_EPILOGUE(4, args);
 }
 FILE* WRAPPER_NAME(tmpfile)(void) {
     // TODO get and check filename of tmpfile
-    RECORDER_INTERCEPTOR_PASSTHROUGH(FILE*, tmpfile, ());
+    RECORDER_INTERCEPTOR_PROLOGUE(FILE*, tmpfile, ());
+    char **args = NULL;
+    RECORDER_INTERCEPTOR_EPILOGUE(0, args);
 }
 int WRAPPER_NAME(remove)(const char *path) {
     GET_CHECK_FILENAME(remove, (path), path, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, remove, (path));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, remove, (path));
+    char** args = assemble_args_list(1, _fname);
+    RECORDER_INTERCEPTOR_EPILOGUE(1, args)
 }
 int WRAPPER_NAME(truncate)(const char *path, off_t length) {
     GET_CHECK_FILENAME(truncate, (path, length), path, ARG_TYPE_PATH);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, truncate, (path, length));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, truncate, (path, length));
+    char** args = assemble_args_list(2, _fname, itoa(length));
+    RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 int WRAPPER_NAME(ftruncate)(int fd, off_t length) {
     GET_CHECK_FILENAME(ftruncate, (fd, length), &fd, ARG_TYPE_FD);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, ftruncate, (fd, length));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, ftruncate, (fd, length));
+    char** args = assemble_args_list(2, _fname, itoa(length));
+    RECORDER_INTERCEPTOR_EPILOGUE(2, args);
 }
 
 int WRAPPER_NAME(fseeko)(FILE *stream, off_t offset, int whence) {
     GET_CHECK_FILENAME(fseeko, (stream, offset, whence), stream, ARG_TYPE_STREAM);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, fseeko, (stream, offset, whence));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, fseeko, (stream, offset, whence));
+    char** args = assemble_args_list(3, _fname, itoa(offset), itoa(whence));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 off_t WRAPPER_NAME(ftello)(FILE *stream) {
     GET_CHECK_FILENAME(ftello, (stream), stream, ARG_TYPE_STREAM);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(long, ftello, (stream));
+    RECORDER_INTERCEPTOR_PROLOGUE(long, ftello, (stream));
+    char** args = assemble_args_list(1, _fname);
+    RECORDER_INTERCEPTOR_EPILOGUE(1, args)
 }
 
 int WRAPPER_NAME(fflush)(FILE *stream) {
     GET_CHECK_FILENAME(fflush, (stream), stream, ARG_TYPE_STREAM);
-    RECORDER_INTERCEPTOR_PASSTHROUGH(int, fflush, (stream));
+    RECORDER_INTERCEPTOR_PROLOGUE(int, fflush, (stream));
+    char** args = assemble_args_list(1, _fname);
+    RECORDER_INTERCEPTOR_EPILOGUE(1, args)
 }

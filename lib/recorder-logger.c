@@ -98,10 +98,10 @@ void write_record(Record *record) {
 
     append_terminal(&logger.cfg, entry->terminal_id, 1);
 
-    printf("rank:%d", logger.rank);
-    printf("terminid:%d", entry->terminal_id);
+    printf("rank:%d - ", logger.rank);
+    printf("terminid:%d - ", entry->terminal_id);
     const char* funcname = get_function_name_by_id(record->func_id);
-    printf("funcname:%s", funcname);
+    printf("funcname:%s \n", funcname);
 
 
     // store timestamps, only write out at finalize time

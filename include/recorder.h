@@ -103,4 +103,15 @@
     logger_record_exit(record);                                                     \
     return res;
 
+/**
+ * Just call the real call without generating records
+ */
+
+#define RECORDER_INTERCEPTOR_PASSTHROUGH(ret, func, real_args)                  \
+    GOTCHA_SET_REAL_CALL_NOCHECK(func);                                         \
+    ret res = GOTCHA_REAL_CALL(func) real_args ;                                \
+    return res;                                                                 \
+
 #endif /* __RECORDER_H */
+
+
