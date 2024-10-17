@@ -35,6 +35,7 @@ void write_to_textfile(Record *record, void* arg) {
     for(int arg_id = 0; !user_func && arg_id < record->arg_count; arg_id++) {
         char *arg = record->args[arg_id];
         fprintf(f, " %s", arg);
+
     }
 
     fprintf(f, " )\n");

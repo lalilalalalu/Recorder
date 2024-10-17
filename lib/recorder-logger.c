@@ -29,6 +29,18 @@ struct RecordStack {
     Record *records;
     UT_hash_handle hh;
 };
+
+void print_key(CallSignature* cs) {
+    if (cs->key) {
+        int *int_key = (int *)cs->key;
+        for (int i = 0; i < cs->key_len / sizeof(int); i++) {
+            printf("Key[%d]: %d\n", i, int_key[i]);
+        }
+    } else {
+        printf("Key is NULL.\n");
+    }
+}
+
 static struct RecordStack *g_record_stack = NULL;
 
 
@@ -94,14 +106,16 @@ void write_record(Record *record) {
         entry->terminal_id = logger.current_cfg_terminal++;
         entry->count = 1;
         HASH_ADD_KEYPTR(hh, logger.cst, entry->key, entry->key_len, entry);
+
+        printf("rank:%d - ", logger.rank);
+        printf("terminid:%d - ", entry->terminal_id);
+        const char* funcname = get_function_name_by_id(record->func_id);
+        printf("funcname:%s \n", funcname);
     }
 
     append_terminal(&logger.cfg, entry->terminal_id, 1);
 
-    printf("rank:%d - ", logger.rank);
-    printf("terminid:%d - ", entry->terminal_id);
-    const char* funcname = get_function_name_by_id(record->func_id);
-    printf("funcname:%s \n", funcname);
+
 
 
     // store timestamps, only write out at finalize time
@@ -402,7 +416,12 @@ void logger_finalize() {
     }
 
     // print cfg
-    // sequitur_print_rules(&logger.cfg);
+    /**
+     * const char* cfg_str = sequitur_get_rules_string(&logger.cfg);
+     * RECORDER_LOGINFO("[Recorder] trace files have been written to %s\n", cfg_str);
+     */
+    printf("GRAMMAR-Rank: %d \n", logger.rank);
+    sequitur_print_rules(&logger.cfg);
 
     // interprocess cst and cfg compression
     cleanup_record_stack();
@@ -413,6 +432,7 @@ void logger_finalize() {
         double t2 = recorder_wtime();
         if(logger.rank == 0)
             RECORDER_LOGINFO("[Recorder] interprocess compression time: %.3f secs\n", (t2-t1));
+
     } else {
         save_cst_local(&logger);
         save_cfg_local(&logger);

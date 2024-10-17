@@ -116,6 +116,8 @@ void sequitur_save_unique_grammars(const char* path, Grammar* lg, int mpi_rank, 
 /* recorder_sequitur_utils.c */
 void  sequitur_print_rules(Grammar *grammar);
 void  sequitur_print_digrams(Grammar *grammar);
+char* sequitur_get_rules_string(Grammar *grammar);
+
 
 
 #endif

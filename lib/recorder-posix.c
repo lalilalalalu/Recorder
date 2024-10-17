@@ -53,6 +53,34 @@ static inline char* stream2name(FILE* stream) {
     return NULL;
 }
 
+off64_t group_count(size_t count) {
+    if (count <= 100) {
+        return 100;
+    }else if (count<=1000){
+        return 1000;
+    }else if (count <= 4000) {
+        return 4000;
+    } else if (count <= 100000) {
+        return 100000;
+    } else if (count <= 1000000) {
+        return 1000000;
+    } else if (count <= 4000000) {
+        return 4000000;
+    } else if (count <= 10000000) {
+        return 10000000;
+    } else if (count <= 100000000) {
+        return 100000000;
+    } else if (count <= 1000000000) {
+        return 1000000000;
+    } else if (count <= 4000000000) {
+        return 4000000000;
+    } else {
+        return count;
+    }
+}
+
+
+
 
 /**
  * Given a (char* path), (int fd) or (FILE* stream)
@@ -313,8 +341,8 @@ ssize_t WRAPPER_NAME(pread64)(int fd, void *buf, size_t count, off64_t offset) {
     off64_t stored_offset = offset;
     if (logger_intraprocess_pattern_recognition())
         stored_offset = iopr_intraprocess("pread64", (off64_t)offset);
-    char** args = assemble_args_list(4, _fname, ptoa(buf), itoa(count), itoa(offset));
-    RECORDER_INTERCEPTOR_EPILOGUE(4, args);
+    char** args = assemble_args_list(3, _fname, ptoa(buf), itoa(group_count(count)));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 ssize_t WRAPPER_NAME(pread)(int fd, void *buf, size_t count, off_t offset) {
@@ -323,8 +351,8 @@ ssize_t WRAPPER_NAME(pread)(int fd, void *buf, size_t count, off_t offset) {
     off64_t stored_offset = (off64_t) offset;
     if (logger_intraprocess_pattern_recognition())
         stored_offset = iopr_intraprocess("pread", (off64_t)offset);
-    char** args = assemble_args_list(4, _fname, ptoa(buf), itoa(count), itoa(offset));
-    RECORDER_INTERCEPTOR_EPILOGUE(4, args);
+    char** args = assemble_args_list(3, _fname, ptoa(buf), itoa(group_count(count)));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 ssize_t WRAPPER_NAME(pwrite64)(int fd, const void *buf, size_t count, off64_t offset) {
@@ -333,8 +361,8 @@ ssize_t WRAPPER_NAME(pwrite64)(int fd, const void *buf, size_t count, off64_t of
     off64_t stored_offset = (off64_t) offset;
     if (logger_intraprocess_pattern_recognition())
         stored_offset = iopr_intraprocess("pwrite64", (off64_t)offset);
-    char** args = assemble_args_list(4, _fname, ptoa(buf), itoa(count), itoa(stored_offset));
-    RECORDER_INTERCEPTOR_EPILOGUE(4, args);
+    char** args = assemble_args_list(3, _fname, ptoa(buf), itoa(group_count(count)));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 ssize_t WRAPPER_NAME(pwrite)(int fd, const void *buf, size_t count, off_t offset) {
     GET_CHECK_FILENAME(pwrite, (fd, buf, count, offset), &fd, ARG_TYPE_FD);
@@ -342,8 +370,8 @@ ssize_t WRAPPER_NAME(pwrite)(int fd, const void *buf, size_t count, off_t offset
     off64_t stored_offset = (off64_t) offset;
     if (logger_intraprocess_pattern_recognition())
         stored_offset = iopr_intraprocess("pwrite", (off64_t)offset);
-    char** args = assemble_args_list(4, _fname, ptoa(buf), itoa(count), itoa(stored_offset));
-    RECORDER_INTERCEPTOR_EPILOGUE(4, args);
+    char** args = assemble_args_list(3, _fname, ptoa(buf), itoa(group_count(count)));
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 ssize_t WRAPPER_NAME(readv)(int fd, const struct iovec *iov, int iovcnt) {
@@ -354,7 +382,7 @@ ssize_t WRAPPER_NAME(readv)(int fd, const struct iovec *iov, int iovcnt) {
     for (i = 0; i < iovcnt; i++)
         total += iov[i].iov_len;
     RECORDER_INTERCEPTOR_PROLOGUE(ssize_t, readv, (fd, iov, iovcnt));
-    char** args = assemble_args_list(3, _fname, itoa(total), itoa(iovcnt));
+    char** args = assemble_args_list(3, _fname, itoa(group_count(total)), itoa(group_count(iovcnt)));
     RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
@@ -366,22 +394,22 @@ ssize_t WRAPPER_NAME(writev)(int fd, const struct iovec *iov, int iovcnt) {
     for (i = 0; i < iovcnt; i++)
         total += iov[i].iov_len;
     RECORDER_INTERCEPTOR_PROLOGUE(ssize_t, writev, (fd, iov, iovcnt));
-    char** args = assemble_args_list(3, _fname, itoa(total), itoa(iovcnt));
+    char** args = assemble_args_list(3, _fname, itoa(group_count(total)), itoa(group_count(iovcnt)));
     RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 size_t WRAPPER_NAME(fread)(void *ptr, size_t size, size_t nmemb, FILE *stream) {
     GET_CHECK_FILENAME(fread, (ptr, size, nmemb, stream), stream, ARG_TYPE_STREAM);
     RECORDER_INTERCEPTOR_PROLOGUE(size_t, fread, (ptr, size, nmemb, stream));
-    char** args = assemble_args_list(4, ptoa(ptr), itoa(size), itoa(nmemb), _fname);
-    RECORDER_INTERCEPTOR_EPILOGUE(4, args);
+    char** args = assemble_args_list(3, ptoa(ptr), itoa(group_count(size*nmemb)), _fname);
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 size_t WRAPPER_NAME(fwrite)(const void *ptr, size_t size, size_t nmemb, FILE *stream) {
     GET_CHECK_FILENAME(fwrite, (ptr, size, nmemb, stream), stream, ARG_TYPE_STREAM);
     RECORDER_INTERCEPTOR_PROLOGUE(size_t, fwrite, (ptr, size, nmemb, stream));
-    char** args = assemble_args_list(4, ptoa(ptr), itoa(size), itoa(nmemb), _fname);
-    RECORDER_INTERCEPTOR_EPILOGUE(4, args);
+    char** args = assemble_args_list(3, ptoa(ptr), itoa(group_count(size*nmemb)), _fname);
+    RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 /*
@@ -404,14 +432,14 @@ int WRAPPER_NAME(fprintf)(FILE *stream, const char *format, ...) {
 ssize_t WRAPPER_NAME(read)(int fd, void *buf, size_t count) {
     GET_CHECK_FILENAME(read, (fd, buf, count), &fd, ARG_TYPE_FD);
     RECORDER_INTERCEPTOR_PROLOGUE(ssize_t, read, (fd, buf, count));
-    char** args = assemble_args_list(3, _fname, ptoa(buf), itoa(count));
+    char** args = assemble_args_list(3, _fname, ptoa(buf), itoa(group_count(count)));
     RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 
 ssize_t WRAPPER_NAME(write)(int fd, const void *buf, size_t count) {
     GET_CHECK_FILENAME(write, (fd, buf, count), &fd, ARG_TYPE_FD);
     RECORDER_INTERCEPTOR_PROLOGUE(ssize_t, write, (fd, buf, count));
-    char** args = assemble_args_list(3, _fname, ptoa(buf), itoa(count));
+    char** args = assemble_args_list(3, _fname, ptoa(buf), itoa(group_count(count)));
     RECORDER_INTERCEPTOR_EPILOGUE(3, args);
 }
 

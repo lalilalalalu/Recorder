@@ -7,6 +7,10 @@
 #include <stdlib.h>
 #include "recorder-sequitur.h"
 
+#define INITIAL_SIZE 1024
+#define CHUNK_SIZE 512
+
+
 void sequitur_print_digrams(Grammar *grammar) {
     Digram *digram, *tmp;
 
@@ -51,4 +55,72 @@ void sequitur_print_rules(Grammar *grammar) {
     printf("Number of Digrams: %d\n=======================\n", HASH_COUNT(grammar.digram_table));
     */
     printf("[recorder] Rules: %d, Symbols: %d\n", rules_count, symbols_count);
+}
+
+
+char* sequitur_get_rules_string(Grammar *grammar) {
+    Symbol *rule, *sym;
+    int rules_count = 0, symbols_count = 0;
+    size_t buffer_size = INITIAL_SIZE;
+    size_t used_size = 0;
+    char buffer[CHUNK_SIZE];
+
+    char *result = (char*)malloc(buffer_size);
+    if (result == NULL) {
+        return NULL;
+    }
+    result[0] = '\0';
+
+    DL_COUNT(grammar->rules, rule, rules_count);
+
+    DL_FOREACH(grammar->rules, rule) {
+        int count;
+        DL_COUNT(rule->rule_body, sym, count);
+        symbols_count += count;
+
+        int needed = snprintf(buffer, sizeof(buffer), "Rule %d :-> ", rule->val);
+
+        // Ensure the result buffer has enough space, and reallocate if needed
+        if (used_size + needed >= buffer_size) {
+            buffer_size += CHUNK_SIZE;
+            result = (char*)realloc(result, buffer_size);
+            if (result == NULL) {
+                return NULL;
+            }
+        }
+        strcat(result, buffer);
+        used_size += needed;
+
+        DL_FOREACH(rule->rule_body, sym) {
+            if (sym->exp > 1)
+                needed = snprintf(buffer, sizeof(buffer), "%d^%d ", sym->val, sym->exp);
+            else
+                needed = snprintf(buffer, sizeof(buffer), "%d ", sym->val);
+
+            // Ensure the result buffer has enough space, and reallocate if needed
+            if (used_size + needed >= buffer_size) {
+                buffer_size += CHUNK_SIZE;
+                result = (char*)realloc(result, buffer_size);
+                if (result == NULL) {
+                    return NULL;
+                }
+            }
+            strcat(result, buffer);
+            used_size += needed;
+        }
+        strcat(result, "\n");
+        used_size += 1;
+    }
+
+    int needed = snprintf(buffer, sizeof(buffer), "[recorder] Rules: %d, Symbols: %d\n", rules_count, symbols_count);
+    if (used_size + needed >= buffer_size) {
+        buffer_size += CHUNK_SIZE;
+        result = (char*)realloc(result, buffer_size);
+        if (result == NULL) {
+            return NULL;
+        }
+    }
+    strcat(result, buffer);
+
+    return result;
 }
