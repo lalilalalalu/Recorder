@@ -153,6 +153,8 @@ Record* reader_cs_to_record(CallSignature *cs) {
     pos += sizeof(record->func_id);
     memcpy(&record->call_depth, key+pos, sizeof(record->call_depth));
     pos += sizeof(record->call_depth);
+    memcpy(&record->call_site, key+pos, sizeof(record->call_site));
+    pos += sizeof(record->call_site);
     memcpy(&record->arg_count, key+pos, sizeof(record->arg_count));
     pos += sizeof(record->arg_count);
 
