@@ -20,6 +20,7 @@
 #include <dlfcn.h>
 #include <link.h>
 #include <libunwind.h>
+#include <pthread.h>
 #include "recorder.h"
 
 #define CALLSITE_UNKNOWN 0xFFFFFFFFu
@@ -42,6 +43,7 @@ typedef struct CallSite_t {
 /* dladdr1/realpath can reach intercepted functions. */
 static __thread int in_intern = 0;
 
+static pthread_mutex_t  cs_mutex = PTHREAD_MUTEX_INITIALIZER;
 static bool             cs_enabled      = false;
 static CallSite*        cs_table        = NULL;
 static CallSiteModule*  cs_modules      = NULL;
@@ -142,8 +144,10 @@ uint32_t callsite_intern(void* return_address)
     }
 
     CallSite* cs = NULL;
+    pthread_mutex_lock(&cs_mutex);
     HASH_FIND(hh, cs_table, &ip, sizeof(const void*), cs);
-    if (cs) return cs->id;
+    if (cs) { uint32_t id = cs->id; pthread_mutex_unlock(&cs_mutex); return id; }
+    pthread_mutex_unlock(&cs_mutex);
 
     in_intern = 1;
     Dl_info info;
@@ -157,6 +161,11 @@ uint32_t callsite_intern(void* return_address)
     in_intern = 0;
     if (!path) return CALLSITE_UNKNOWN;
 
+    pthread_mutex_lock(&cs_mutex);
+    /* another thread may have interned it while we resolved */
+    HASH_FIND(hh, cs_table, &ip, sizeof(const void*), cs);
+    if (cs) { uint32_t id = cs->id; pthread_mutex_unlock(&cs_mutex); return id; }
+
     cs = (CallSite*) recorder_malloc(sizeof(CallSite));
     cs->ip        = ip;
     cs->module_id = module_intern(path);
@@ -164,7 +173,9 @@ uint32_t callsite_intern(void* return_address)
     cs->offset    = (uint64_t)((const char*)ip - (const char*)lm->l_addr);
     cs->id        = cs_count++;
     HASH_ADD(hh, cs_table, ip, sizeof(const void*), cs);
-    return cs->id;
+    uint32_t id = cs->id;
+    pthread_mutex_unlock(&cs_mutex);
+    return id;
 }
 
 /* Ids are per-rank, so each rank needs its own table. */
