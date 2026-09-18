@@ -125,15 +125,22 @@ void write_record(Record *record) {
     pthread_mutex_unlock(&g_mutex);
 }
 
+/* The per-thread stack is reached through TLS, so the hot path needs no lock.
+ * g_record_stack only keeps them for cleanup and is touched once per thread. */
+static __thread struct RecordStack* tls_record_stack = NULL;
+static pthread_mutex_t g_stack_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 void logger_record_enter(Record* record) {
-    struct RecordStack *rs;
-    HASH_FIND(hh, g_record_stack, &record->tid, sizeof(pthread_t), rs);
+    struct RecordStack *rs = tls_record_stack;
     if(!rs) {
         rs = recorder_malloc(sizeof(struct RecordStack));
         rs->records = NULL;
         rs->call_depth  = 0;
         rs->tid = record->tid;
+        pthread_mutex_lock(&g_stack_mutex);
         HASH_ADD(hh, g_record_stack, tid, sizeof(pthread_t), rs);
+        pthread_mutex_unlock(&g_stack_mutex);
+        tls_record_stack = rs;
     }
 
     DL_APPEND(rs->records, record);
@@ -323,6 +330,7 @@ void logger_init() {
 }
 
 void cleanup_record_stack() {
+    tls_record_stack = NULL;
     struct RecordStack *rs, *tmp;
     HASH_ITER(hh, g_record_stack, rs, tmp) {
         HASH_DEL(g_record_stack, rs);
