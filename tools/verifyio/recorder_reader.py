@@ -11,6 +11,7 @@ class VerifyIORecord(Structure):
             ("call_depth", c_ubyte),
             ("arg_count",  c_ubyte),
             ("args",       POINTER(c_char_p)),    # Note in python3, args[i] is 'bytes' type
+            ("call_site",  c_uint32),             # id into the rank's call site table
     ]
 
     # In Python3, self.args[i] is 'bytes' type
@@ -75,12 +76,48 @@ class RecorderReader:
         # Set up C reader library
         # Read all VerifyIORecord
         self.libreader = cdll.LoadLibrary(libreader_path)
+        self.__check_record_layout(libreader_path)
         self.libreader.recorder_read_verifyio_records.restype = POINTER(POINTER(VerifyIORecord))
         num_records = (c_size_t * self.nprocs)()
         self.records = self.libreader.recorder_read_verifyio_records(self.str2char_p(self.logs_dir), num_records)
         self.num_records = [0 for x in range(self.nprocs)]
         for rank in range(self.nprocs):
             self.num_records[rank] = num_records[rank]
+
+        # Per-rank call site tables, loaded on first use (addr2line is slow)
+        self.libreader.callsite_table_load.restype  = c_void_p
+        self.libreader.callsite_table_load.argtypes = [c_char_p, c_int]
+        self.libreader.callsite_table_get.restype   = c_char_p
+        self.libreader.callsite_table_get.argtypes  = [c_void_p, c_uint32]
+        self.callsite_tables = {}
+
+    def __check_record_layout(self, libreader_path):
+        # VerifyIORecord must match the C struct; an older libreader
+        # without call_site would be read with the wrong stride.
+        try:
+            c_size = self.libreader.recorder_verifyio_record_size
+        except AttributeError:
+            c_size = None
+        if c_size is not None:
+            c_size.restype = c_size_t
+        if c_size is None or c_size() != sizeof(VerifyIORecord):
+            print("Error:\n"
+                  "    %s does not match this verifyio version.\n"
+                  "    Please rebuild and reinstall Recorder." % libreader_path)
+            exit(1)
+
+    def get_callsite(self, rank, call_site_id):
+        """Source location of a call site id as "file:line in function",
+        or None if the trace has no call sites (not a FULL_TRACING build)."""
+        if rank not in self.callsite_tables:
+            combined = os.path.join(self.logs_dir, "recorder.dat")
+            self.callsite_tables[rank] = self.libreader.callsite_table_load(
+                    combined.encode('utf-8'), rank)
+        table = self.callsite_tables[rank]
+        if not table:
+            return None
+        loc = self.libreader.callsite_table_get(table, call_site_id)
+        return loc.decode('utf-8') if loc else None
 
     # Mirror of RecorderMetadata from include/recorder-logger.h (new format).
     # Must stay in sync with the C struct layout.

@@ -1,4 +1,4 @@
-import argparse, time, sys
+import argparse, time, sys, os
 from recorder_reader import RecorderReader
 from read_nodes import read_verifyio_nodes_and_conflicts
 from match_mpi import match_mpi_calls
@@ -15,6 +15,7 @@ class VerifyIO:
         self.show_summary = args.show_summary       # whether to show summary in the end
         self.show_details = args.show_details       # whether to show violation details
         self.show_full_chain = args.show_full_chain # whether to show full call chain
+        self.show_callsite = args.show_callsite     # whether to show source locations of violations
         if self.semantics == "Custom":
             self.semantic_string = args.semantic_string # Custom semantics string
         self.reader = None                          # RecorderReader
@@ -198,7 +199,7 @@ def verify_execution_proper_synchronization(conflict_pairs, vio:VerifyIO):
                 and (not verify_pair_proper_synchronization(n2s[rank][0], n1, vio)):
                 total_violations += len(n2s[rank])
                 for n2 in n2s[rank]:
-                    if args.show_summary:
+                    if vio.show_summary or vio.show_details or vio.show_callsite:
                         get_violation_info([n1, n2], vio, summary, False)
                     #print(f"{vio.semantics} violation: {n1} {n2}")
                 continue
@@ -211,7 +212,7 @@ def verify_execution_proper_synchronization(conflict_pairs, vio:VerifyIO):
                 this_pair_ok = (verify_pair_proper_synchronization(n1, n2, vio) or \
                                 verify_pair_proper_synchronization(n2, n1, vio))
                 if not this_pair_ok:
-                    if args.show_summary:
+                    if vio.show_summary or vio.show_details or vio.show_callsite:
                         get_violation_info([n1, n2], vio, summary, this_pair_ok)
                     total_violations += 1
                     #print(f"{vio.semantics} violation: {n1} {n2}")
@@ -317,6 +318,19 @@ def get_violation_info(nodes: list, vio, summary, this_pair_ok):
     def build_call_chain_str(call_chain, reader):
         return "-->".join(reader.funcs[cc.func_id] for cc in call_chain)
 
+    def build_callsite_str(rank, record, reader):
+        loc = reader.get_callsite(rank, record.call_site)
+        if loc is None:
+            loc = "unknown call site"
+        else:
+            # "a/b/../../c/file.c:12 in f <- ..." -> "c/file.c:12 in f <- ..."
+            frames = []
+            for frame in loc.split(" <- "):
+                path, sep, rest = frame.partition(":")
+                frames.append(os.path.normpath(path) + sep + rest)
+            loc = " <- ".join(frames)
+        return f"{reader.funcs[record.func_id]} ({loc})"
+
     left_call_chain = get_call_chain(nodes[0], vio.reader, vio.show_full_chain)
     right_call_chain = get_call_chain(nodes[1], vio.reader, vio.show_full_chain)
     file = vio.reader.records[nodes[0].rank][nodes[0].seq_id].args[0].decode('utf-8')
@@ -331,6 +345,11 @@ def get_violation_info(nodes: list, vio, summary, this_pair_ok):
             r_str = build_call_chain_str(right_call_chain, vio.reader)
             l_str = build_call_chain_str(reversed(left_call_chain), vio.reader)
             print(f"{nodes[0]}: {l_str} <--> {nodes[1]}: {r_str} on file {file}, properly synchronized: {this_pair_ok}")
+        if vio.show_callsite:
+            # the outermost call of each chain, i.e., the one the application made
+            l_str = build_callsite_str(nodes[0].rank, left_call_chain[-1], vio.reader)
+            r_str = build_callsite_str(nodes[1].rank, right_call_chain[-1], vio.reader)
+            print(f"Rank {nodes[0].rank}: {l_str} <--> Rank {nodes[1].rank}: {r_str} on file {file}")
 
 
 
@@ -368,6 +387,8 @@ if __name__ == "__main__":
     parser.add_argument("--show_details", action="store_true", help="Show details of the conflicts")
     parser.add_argument("--show_summary", action="store_true", help="Show summary of the conflicts")
     parser.add_argument("--show_full_chain", action="store_true", help="Show the full call chain of the conflicts")
+    parser.add_argument("--show_callsite", action="store_true",
+                        help="Show the outermost call of each conflict and its source location (needs a FULL_TRACING trace)")
     args = parser.parse_args()
 
     vio = VerifyIO(args)

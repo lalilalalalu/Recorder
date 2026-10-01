@@ -108,7 +108,11 @@ typedef struct VerifyIORecord_t {
     unsigned char call_depth;
     unsigned char arg_count;
     char** args;
+    uint32_t call_site;         // id into the rank's call site table (FULL_TRACING traces only)
 } VerifyIORecord;
+
+/* sizeof(VerifyIORecord), so Python can detect a stale libreader */
+size_t recorder_verifyio_record_size();
 
 
 void recorder_init_reader(const char* logs_dir, RecorderReader *reader);

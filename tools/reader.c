@@ -792,9 +792,10 @@ int create_verifyio_record(RecorderReader* reader, Record* r, VerifyIORecord* vi
     // return if we will keep the record
     int included = 1;
 
-    // all records keep func_id and call_depth
+    // all records keep func_id, call_depth and call_site
     vir->func_id = r->func_id;
     vir->call_depth = r->call_depth;
+    vir->call_site = r->call_site;
     vir->arg_count = 0;
     vir->args = NULL;
 
@@ -963,5 +964,9 @@ VerifyIORecord** recorder_read_verifyio_records(char* traces_dir, size_t* num_re
 }
 
 void recorder_free_verifyio_records(VerifyIORecord* records) {
+}
+
+size_t recorder_verifyio_record_size() {
+    return sizeof(VerifyIORecord);
 }
 
